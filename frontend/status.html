@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,17 +9,19 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/visuals.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap"
+        rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
         .status-container {
             max-width: 800px;
             margin: 40px auto;
             padding: 20px;
         }
-        
+
         .status-card {
             background: var(--bg-secondary);
             border-radius: var(--radius-lg);
@@ -56,7 +59,7 @@
             background: rgba(239, 68, 68, 0.1);
             color: #EF4444;
         }
-        
+
         .status-warning {
             background: rgba(245, 158, 11, 0.1);
             color: #F59E0B;
@@ -68,10 +71,21 @@
             font-size: 0.875rem;
             font-weight: 600;
         }
-        
-        .badge-up { background: #10B981; color: white; }
-        .badge-down { background: #EF4444; color: white; }
-        .badge-loading { background: var(--text-muted); color: white; }
+
+        .badge-up {
+            background: #10B981;
+            color: white;
+        }
+
+        .badge-down {
+            background: #EF4444;
+            color: white;
+        }
+
+        .badge-loading {
+            background: var(--text-muted);
+            color: white;
+        }
 
         .refresh-btn {
             background: var(--primary-color);
@@ -86,10 +100,13 @@
             gap: 8px;
             margin-top: 20px;
         }
-        
-        .refresh-btn:hover { opacity: 0.9; }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
+
 <body class="dark-mode">
     <nav class="navbar">
         <div class="nav-brand">
@@ -153,13 +170,14 @@
         </button>
     </div>
 
-    <script src="js/config.js"></script>
-    <script>
+    <script type="module">
+        import { API_URL } from './js/config.js';
+
         async function checkHealth() {
             const backendBadge = document.getElementById('backend-badge');
             const backendDesc = document.getElementById('backend-desc');
             const backendIcon = document.getElementById('backend-icon');
-            
+
             const dbBadge = document.getElementById('db-badge');
             const dbDesc = document.getElementById('db-desc');
             const dbIcon = document.getElementById('db-icon');
@@ -178,18 +196,17 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    
+
                     // Backend Status
                     if (data.status === 'UP') {
                         backendBadge.className = 'status-badge badge-up';
                         backendBadge.innerText = 'OPERATIVO';
                         backendDesc.innerText = `Respondiendo en ${latency}ms`;
                         backendIcon.className = 'status-icon status-up';
-                        
+
                         // Database Status (Inferido o Explícito)
-                        // Si components.db existe, usalo. Si no, si backend es UP, asumimos DB UP.
                         const dbStatus = data.components?.db?.status || (data.status === 'UP' ? 'UP' : 'UNKNOWN');
-                        
+
                         if (dbStatus === 'UP') {
                             dbBadge.className = 'status-badge badge-up';
                             dbBadge.innerText = 'CONECTADO';
@@ -222,8 +239,12 @@
             }
         }
 
+        // Exponer función al objeto window para que el botón funcione
+        window.checkHealth = checkHealth;
+
         // Check on load
         document.addEventListener('DOMContentLoaded', checkHealth);
     </script>
 </body>
+
 </html>
