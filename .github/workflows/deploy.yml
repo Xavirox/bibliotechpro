@@ -1,0 +1,64 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Deployment Package
+        run: |
+          # Zip files excluding unrelated/heavy folders
+          zip -r deploy_package.zip . -x "*.git*" "target/*" "node_modules/*" ".vscode/*" ".idea/*" "*.log" "deploy_to_vps.ps1" "deploy_package.zip"
+
+      - name: Copy Package to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          source: "deploy_package.zip"
+          target: "~/bibliotech-pro"
+
+      - name: Execute Remote Deployment
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: 22
+          script: |
+            mkdir -p ~/bibliotech-pro
+            cd ~/bibliotech-pro
+            
+            # Unzip handling potential errors
+            if [ -f deploy_package.zip ]; then
+              unzip -o deploy_package.zip
+              rm deploy_package.zip
+            else
+              echo "Error: deploy_package.zip not found"
+              exit 1
+            fi
+            
+            # Fix permissions
+            chmod -R 755 .
+            
+            # Ensure .env exists check
+            if [ ! -f .env ]; then 
+                cp .env.example .env
+                echo "WARNING: Created default .env from template. Please configure secrets manually."
+            fi
+            
+            # Docker Deploy
+            echo "Starting Docker build and deploy..."
+            docker compose -f docker-compose-vps.yml up -d --build --remove-orphans
+            
+            # Cleanup
+            docker system prune -f

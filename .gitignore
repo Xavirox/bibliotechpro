@@ -1,0 +1,23 @@
+# Environment files with secrets
+.env
+*.env.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Maven
+target/
+
+# Logs
+*.log
+logs/
+frontend/logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml

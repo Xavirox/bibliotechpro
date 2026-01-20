@@ -1,0 +1,80 @@
+{
+    "name": "BiblioTech Pro",
+    "short_name": "BiblioTech",
+    "description": "Sistema de Gestión de Biblioteca Digital con Inteligencia Artificial",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0F172A",
+    "theme_color": "#6366F1",
+    "orientation": "portrait-primary",
+    "scope": "/",
+    "lang": "es-ES",
+    "categories": [
+        "education",
+        "productivity",
+        "books"
+    ],
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%236366F1'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='260' font-family='Arial' fill='white'>📚</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%236366F1'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='100' font-family='Arial' fill='white'>📚</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Explorar Catálogo",
+            "short_name": "Catálogo",
+            "description": "Ver todos los libros disponibles",
+            "url": "/?view=catalog",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='20' fill='%236366F1'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='50' font-family='Arial' fill='white'>📖</text></svg>",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Mis Libros",
+            "short_name": "Mis Libros",
+            "description": "Ver mis préstamos y reservas",
+            "url": "/?view=mybooks",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='20' fill='%2310B981'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='50' font-family='Arial' fill='white'>📚</text></svg>",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Recomendaciones IA",
+            "short_name": "IA",
+            "description": "Obtener recomendaciones personalizadas",
+            "url": "/?view=recommendations",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect width='96' height='96' rx='20' fill='%23EC4899'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='50' font-family='Arial' fill='white'>🤖</text></svg>",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect width='540' height='720' fill='%231E293B'/><text x='270' y='360' text-anchor='middle' font-size='40' fill='white'>BiblioTech Pro</text></svg>",
+            "sizes": "540x720",
+            "type": "image/svg+xml",
+            "form_factor": "narrow",
+            "label": "Login Screen"
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}

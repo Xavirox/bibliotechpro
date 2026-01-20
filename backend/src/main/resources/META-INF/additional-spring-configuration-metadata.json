@@ -1,0 +1,37 @@
+{
+    "groups": [
+        {
+            "name": "app.jwt",
+            "type": "com.biblioteca.config.JwtProperties",
+            "sourceType": "com.biblioteca.config.JwtProperties",
+            "description": "JWT authentication configuration properties"
+        },
+        {
+            "name": "gemini.api",
+            "type": "com.biblioteca.config.GeminiProperties",
+            "sourceType": "com.biblioteca.config.GeminiProperties",
+            "description": "Gemini AI API configuration properties"
+        }
+    ],
+    "properties": [
+        {
+            "name": "app.jwt.secret",
+            "type": "java.lang.String",
+            "sourceType": "com.biblioteca.config.JwtProperties",
+            "description": "Secret key for signing JWT tokens. Should be set via JWT_SECRET environment variable."
+        },
+        {
+            "name": "app.jwt.expiration-ms",
+            "type": "java.lang.Integer",
+            "sourceType": "com.biblioteca.config.JwtProperties",
+            "description": "JWT token expiration time in milliseconds. Default: 86400000 (24 hours)"
+        },
+        {
+            "name": "gemini.api.key",
+            "type": "java.lang.String",
+            "sourceType": "com.biblioteca.config.GeminiProperties",
+            "description": "API key for Gemini AI service. Should be set via GEMINI_API_KEY environment variable."
+        }
+    ],
+    "hints": []
+}
