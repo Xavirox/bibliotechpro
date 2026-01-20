@@ -10,10 +10,13 @@
 
 **Sistema profesional de gestión bibliotecaria con Inteligencia Artificial integrada**
 
+[🔗 Acceder a Producción](http://asir.javiergimenez.es:9142) •
 [🚀 Inicio Rápido](#-inicio-rápido) •
 [✨ Características](#-características-principales) •
 [🏗️ Arquitectura](#️-arquitectura) •
 [📖 Documentación](#-documentación)
+
+> **🚀 PROYECTO DESPLEGADO:** Accede a la versión en vivo en [asir.javiergimenez.es:9142](http://asir.javiergimenez.es:9142)
 
 </div>
 
