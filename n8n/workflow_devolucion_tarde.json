@@ -1,0 +1,80 @@
+{
+    "name": "Gestión Devoluciones SIMPLIFICADA v3",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webhook-devolucion-tarde-v3",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                0,
+                0
+            ],
+            "id": "webhook-trigger",
+            "name": "Webhook (Java Backend)"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Configuración de la multa diaria\nconst MULTA_POR_DIA = 0.50;\n\n// Obtener datos del webhook\nconst datos = items[0].json;\nconst dias = datos.dias_retraso > 0 ? datos.dias_retraso : 1;\n\n// Calcular multa\nconst multaTotal = (dias * MULTA_POR_DIA).toFixed(2);\n\n// Fecha actual para el log\nconst fechaLog = new Date().toISOString().replace('T', ' ').substring(0, 19);\n\n// Retornar array (importante)\nreturn [{\n  json: {\n    ...datos,\n    multa_total: multaTotal,\n    fecha_log: fechaLog,\n    mensaje_telegram: `⚠️ *Nueva Multa* ⚠️\\n\\n👤 *Usuario:* ${datos.usuario}\\n📚 *Libro:* ${datos.libro}\\n📅 *Retraso:* ${dias} días\\n💰 *Multa:* ${multaTotal}€`,\n    csv_line: `${fechaLog},${datos.usuario},${datos.libro},${dias},${multaTotal}`\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                220,
+                0
+            ],
+            "id": "calculator",
+            "name": "Calcular Multa"
+        },
+        {
+            "parameters": {
+                "chatId": "-4870856336",
+                "text": "={{ $json.mensaje_telegram }}",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                480,
+                0
+            ],
+            "id": "telegram-alert",
+            "name": "Alerta Telegram",
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_TELEGRAM_CREDENTIALS_ID",
+                    "name": "Telegram account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook (Java Backend)": {
+            "main": [
+                [
+                    {
+                        "node": "Calcular Multa",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Calcular Multa": {
+            "main": [
+                [
+                    {
+                        "node": "Alerta Telegram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

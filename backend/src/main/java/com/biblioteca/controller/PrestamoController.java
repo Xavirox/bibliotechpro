@@ -76,15 +76,19 @@ public class PrestamoController {
 
     @GetMapping
     @Operation(summary = "Listar préstamos", description = "Obtiene todos los préstamos, opcionalmente filtrados por estado")
-    public List<Prestamo> getAllPrestamos(@RequestParam(required = false) String estado) {
-        return prestamoService.getAllPrestamos(estado);
+    public List<com.biblioteca.dto.PrestamoDTO> getAllPrestamos(@RequestParam(required = false) String estado) {
+        return prestamoService.getAllPrestamos(estado).stream()
+                .map(com.biblioteca.dto.PrestamoDTO::fromEntity)
+                .toList();
     }
 
     @GetMapping("/mis-prestamos")
     @Operation(summary = "Mis préstamos", description = "Obtiene los préstamos del usuario autenticado")
-    public List<Prestamo> getMisPrestamos() {
+    public List<com.biblioteca.dto.PrestamoDTO> getMisPrestamos() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-        return prestamoService.getMisPrestamos(username);
+        return prestamoService.getMisPrestamos(username).stream()
+                .map(com.biblioteca.dto.PrestamoDTO::fromEntity)
+                .toList();
     }
 }

@@ -84,48 +84,37 @@ export async function handleLogin(e, onSuccess) {
 
     try {
         errorDiv.textContent = '';
+        // Usamos fetch normal aquí porque es el login y maneja su propio error visual en el errorDiv
         const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
-            // SEGURIDAD C-02: Include credentials to receive HttpOnly cookie
             credentials: 'include'
         });
 
         if (response.ok) {
             const data = await response.json();
-            // SEGURIDAD C-02: Token ya NO viene en la respuesta (está en cookie HttpOnly)
             currentUser = {
                 id: data.id,
                 username: data.username,
                 rol: data.rol
             };
-            // Solo guardamos info del usuario, NO el token
             localStorage.setItem('user', JSON.stringify(currentUser));
 
             showToast(`Bienvenido, ${currentUser.username}`, 'success');
             if (onSuccess) onSuccess();
         } else {
-            // Try to parse error message from backend
             let errorMsg = 'Error de inicio de sesión';
             try {
                 const errData = await response.json();
-                if (errData.errors) {
-                    errorMsg = errData.errors; // Validation errors
-                } else if (errData.message) {
-                    errorMsg = errData.message; // Auth error or other
-                }
-            } catch (e) {
-                console.warn('Could not parse backend error');
-            }
+                errorMsg = errData.message || errData.errors || errorMsg;
+            } catch (e) { }
 
             errorDiv.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${errorMsg}`;
             showToast(errorMsg, 'error');
         }
     } catch (err) {
-        console.error(err);
         errorDiv.textContent = 'Error de conexión con el servidor.';
-        showToast('No se pudo conectar al servidor', 'error');
     }
 }
 
@@ -135,13 +124,10 @@ export async function handleLogin(e, onSuccess) {
  */
 export async function handleLogout() {
     try {
-        // Llamar al backend para invalidar la cookie
-        await fetch(`${API_URL}/auth/logout`, {
-            method: 'POST',
-            credentials: 'include'
-        });
+        // Usamos fetchWithAuth para asegurar que la sesión se invalida correctamente
+        await fetchWithAuth(`/auth/logout`, { method: 'POST' });
     } catch (err) {
-        console.warn('Error calling logout endpoint:', err);
+        console.warn('Logout request failed:', err);
     }
 
     clearAuthData();
@@ -159,14 +145,9 @@ export async function populateUserDropdown() {
     select.innerHTML = '<option>Conectando con el servidor...</option>';
 
     try {
-        // Timeout para evitar espera infinita
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const response = await fetch(`${API_URL}/socios/public`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error(`Status ${response.status}`);
+        // Endpoint público para cargar usuarios
+        const response = await fetch(`${API_URL}/socios/public`);
+        if (!response.ok) throw new Error('Servidor no disponible');
 
         const users = await response.json();
 
@@ -174,7 +155,6 @@ export async function populateUserDropdown() {
         users.forEach(u => {
             const option = document.createElement('option');
             option.value = u.username;
-            // NOTA: El rol ya no se expone por seguridad - mostrar solo el nombre
             option.textContent = u.nombre;
             select.appendChild(option);
         });
@@ -182,12 +162,12 @@ export async function populateUserDropdown() {
     } catch (e) {
         console.error('Error loading users:', e);
         select.innerHTML = '<option value="">Error - Click para reintentar</option>';
-        select.addEventListener('click', () => populateUserDropdown(), { once: true }); // Retry on click
+        select.addEventListener('click', () => populateUserDropdown(), { once: true });
 
         const errorDiv = document.getElementById('login-error');
         if (errorDiv) {
             errorDiv.innerHTML = `
-                <i class="fa-solid fa-network-wired"></i> Error de conexión (${e.name === 'AbortError' ? 'Timeout' : e.message}).<br>
+                <i class="fa-solid fa-network-wired"></i> Error de conexión.<br>
                 <small>Backend: ${API_URL}</small>
             `;
         }

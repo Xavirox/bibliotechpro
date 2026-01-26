@@ -32,7 +32,7 @@ services:
     networks:
       - bibliotech-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: [ "CMD", "curl", "-f", "http://localhost:80" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -60,11 +60,32 @@ services:
     networks:
       - bibliotech-network
     healthcheck:
-      test: ["CMD", "healthcheck.sh"]
+      test: [ "CMD", "healthcheck.sh" ]
       interval: 60s
       timeout: 30s
       retries: 5
       start_period: 180s
+
+  # =========================================================
+  # AI SERVICE (Python/FastAPI)
+  # =========================================================
+  ai-service:
+    build:
+      context: ./ai_service
+      dockerfile: Dockerfile
+    container_name: bibliotech-ai
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    ports:
+      - "8001:8000" # Expose internally for debug, but mainly on network
+    networks:
+      - bibliotech-network
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 # =========================================================
 # REDES

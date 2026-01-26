@@ -21,3 +21,13 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# Deployment artifacts
+deploy_package.zip
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+

@@ -13,7 +13,7 @@ export async function loadLibrarianView() {
                 </div>
                 <div style="flex:1;">
                     <div class="stat-value count-animate" id="stat-books-value">--</div>
-                    <div class="stat-label">Total Libros</div>
+                    <div class="stat-label">Total libros</div>
                 </div>
             </div>
             <div class="stat-card hover-glow gradient-border" id="stat-loans">
@@ -22,7 +22,7 @@ export async function loadLibrarianView() {
                 </div>
                 <div style="flex:1;">
                     <div class="stat-value count-animate" id="stat-loans-value">--</div>
-                    <div class="stat-label">Préstamos Activos</div>
+                    <div class="stat-label">Préstamos activos</div>
                 </div>
             </div>
             <div class="stat-card hover-glow gradient-border" id="stat-reservations">
@@ -31,7 +31,7 @@ export async function loadLibrarianView() {
                 </div>
                 <div style="flex:1;">
                     <div class="stat-value count-animate" id="stat-reservations-value">--</div>
-                    <div class="stat-label">Reservas Pendientes</div>
+                    <div class="stat-label">Reservas pendientes</div>
                 </div>
             </div>
             <div class="stat-card hover-glow gradient-border" id="stat-users">
@@ -40,7 +40,7 @@ export async function loadLibrarianView() {
                 </div>
                 <div style="flex:1;">
                     <div class="stat-value count-animate" id="stat-users-value">--</div>
-                    <div class="stat-label">Usuarios Activos</div>
+                    <div class="stat-label">Usuarios activos</div>
                 </div>
             </div>
         </div>
@@ -50,7 +50,7 @@ export async function loadLibrarianView() {
             <div class="panel-card">
                 <h3 style="font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
                     <i class="fa-solid fa-chart-pie" style="color:var(--primary);"></i>
-                    Distribución por Categorías
+                    Distribución por categorías
                 </h3>
                 <div id="category-chart" style="height:200px; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary);"></i>
@@ -59,7 +59,7 @@ export async function loadLibrarianView() {
             <div class="panel-card">
                 <h3 style="font-weight:700; margin-bottom:1rem; display:flex; align-items:center; gap:0.5rem;">
                     <i class="fa-solid fa-chart-line" style="color:var(--success);"></i>
-                    Actividad Reciente
+                    Actividad reciente
                 </h3>
                 <div id="activity-chart" style="height:200px; display:flex; align-items:center; justify-content:center;">
                     <i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary);"></i>
@@ -72,7 +72,7 @@ export async function loadLibrarianView() {
             <div class="panel-card stagger-list">
                 <h3 style="border-bottom:2px solid var(--primary); padding-bottom:0.5rem; margin-bottom:1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
                     <i class="fa-solid fa-clock" style="color:var(--warning);"></i> 
-                    Reservas Pendientes
+                    Reservas pendientes
                     <span class="badge badge-warning" id="reservation-count" style="margin-left:auto;">0</span>
                 </h3>
                 <div id="pending-reservations-list" class="card-grid" style="grid-template-columns: 1fr; max-height: 400px; overflow-y: auto;">
@@ -82,7 +82,7 @@ export async function loadLibrarianView() {
             <div class="panel-card stagger-list">
                  <h3 style="border-bottom:2px solid var(--success); padding-bottom:0.5rem; margin-bottom:1rem; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
                     <i class="fa-solid fa-book-open" style="color:var(--success);"></i> 
-                    Préstamos Activos
+                    Préstamos activos
                     <span class="badge badge-success" id="loan-count" style="margin-left:auto;">0</span>
                 </h3>
                  <div id="all-loans-list" class="card-grid" style="grid-template-columns: 1fr; max-height: 400px; overflow-y: auto;">
@@ -102,23 +102,21 @@ export async function loadLibrarianView() {
 
 async function loadStats() {
     try {
+
         // Fetch books
-        const booksRes = await fetchWithAuth('/libros');
-        const books = await booksRes.json();
+        const books = await fetchWithAuth('/libros');
         animateValue('stat-books-value', 0, books.length, 1000);
 
         // Fetch loans
-        const loansRes = await fetchWithAuth('/prestamos');
-        const loans = await loansRes.json();
+        const loans = await fetchWithAuth('/prestamos');
         const activeLoans = loans.filter(l => l.estado === LOAN_STATUS.ACTIVO);
         animateValue('stat-loans-value', 0, activeLoans.length, 1000);
 
         // Fetch reservations
-        const reservationsRes = await fetchWithAuth('/bloqueos/activos');
-        const reservations = await reservationsRes.json();
+        const reservations = await fetchWithAuth('/bloqueos/activos');
         animateValue('stat-reservations-value', 0, reservations.length, 1000);
 
-        // Fetch users
+        // Fetch users (usando fetch directo ya que es endpoint público)
         const usersRes = await fetch('/api/socios/public');
         const users = await usersRes.json();
         animateValue('stat-users-value', 0, users.length, 1000);
@@ -160,8 +158,7 @@ async function loadCategoryChart() {
     if (!container) return;
 
     try {
-        const response = await fetchWithAuth('/libros');
-        const books = await response.json();
+        const books = await fetchWithAuth('/libros');
 
         // Count by category
         const categories = {};
@@ -217,8 +214,7 @@ async function loadActivityChart() {
     if (!container) return;
 
     try {
-        const response = await fetchWithAuth('/prestamos');
-        const loans = await response.json();
+        const loans = await fetchWithAuth('/prestamos');
 
         // Last 7 days activity
         const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -273,8 +269,7 @@ async function loadReservationsList() {
     if (!container) return;
 
     try {
-        const response = await fetchWithAuth(`/bloqueos/activos`);
-        const reservas = await response.json();
+        const reservas = await fetchWithAuth(`/bloqueos/activos`);
 
         if (countBadge) countBadge.textContent = reservas.length;
 
@@ -282,17 +277,24 @@ async function loadReservationsList() {
         if (reservas.length === 0) {
             container.innerHTML = `
                 <div style="text-align:center; padding:2rem; color:var(--text-muted);">
-                    <i class="fa-solid fa-check-circle" style="font-size:2rem; margin-bottom:0.5rem; color:var(--success);"></i>
-                    <div>No hay reservas pendientes</div>
+                    <i class="fa-solid fa-check-circle" style="font-size:3rem; margin-bottom:1rem; color:var(--success); opacity:0.5;"></i>
+                    <div style="font-weight:600; color:var(--text-primary);">¡Todo al día!</div>
+                    <div style="font-size:0.9rem;">No hay reservas esperando ser formalizadas.</div>
                 </div>
             `;
             return;
         }
 
+        const fragment = document.createDocumentFragment();
+
         reservas.forEach((r, index) => {
             const div = document.createElement('div');
             div.className = 'book-card elastic-enter';
-            div.style.cssText = 'display:flex; align-items:center; justify-content:space-between; animation-delay:' + (index * 100) + 'ms';
+            // Optimización: Animación escalonada
+            div.style.animationDelay = (index * 50) + 'ms';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'space-between';
 
             const expiresAt = new Date(r.fechaFin);
             const now = new Date();
@@ -316,9 +318,11 @@ async function loadReservationsList() {
                     <i class="fa-solid fa-check"></i> Prestar
                 </button>
              `;
-            div.querySelector('.btn-loan').addEventListener('click', () => prestarLibro(r.idBloqueo));
-            container.appendChild(div);
+            const btnLoan = div.querySelector('.btn-loan');
+            btnLoan.addEventListener('click', (e) => prestarLibro(r.idBloqueo, e.currentTarget));
+            fragment.appendChild(div);
         });
+        container.appendChild(fragment);
 
     } catch (e) {
         console.error(e);
@@ -332,8 +336,7 @@ async function loadAllLoansList() {
     if (!container) return;
 
     try {
-        const response = await fetchWithAuth(`/prestamos`);
-        const loans = await response.json();
+        const loans = await fetchWithAuth(`/prestamos`);
 
         container.innerHTML = '';
         const activeLoans = loans.filter(l => l.estado === LOAN_STATUS.ACTIVO);
@@ -343,34 +346,33 @@ async function loadAllLoansList() {
         if (activeLoans.length === 0) {
             container.innerHTML = `
                 <div style="text-align:center; padding:2rem; color:var(--text-muted);">
-                    <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:0.5rem;"></i>
-                    <div>No hay préstamos activos</div>
+                    <i class="fa-solid fa-box-open" style="font-size:3rem; margin-bottom:1rem; opacity:0.5;"></i>
+                    <div style="font-weight:600; color:var(--text-primary);">Sin préstamos activos</div>
+                    <div style="font-size:0.9rem;">Los libros devueltos aparecerán aquí.</div>
                 </div>
             `;
             return;
         }
 
+        const fragment = document.createDocumentFragment();
+
         activeLoans.forEach((l, index) => {
             const div = document.createElement('div');
             div.className = 'book-card elastic-enter';
-            div.style.cssText = 'display:flex; align-items:center; justify-content:space-between; animation-delay:' + (index * 100) + 'ms';
-
-            // Calculate days overdue or remaining
-            const due = new Date(l.fechaPrevistaDevolucion);
-            const now = new Date();
-            const diffTime = due - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            const isOverdue = diffDays < 0;
+            div.style.animationDelay = (index * 100) + 'ms';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.justifyContent = 'space-between';
 
             div.innerHTML = `
                 <div style="flex:1;">
-                   <div style="font-weight:700; font-size:1rem;">${l.ejemplar.libro.titulo}</div>
+                   <div style="font-weight:700; font-size:1rem;">${l.tituloLibro}</div>
                    <div style="font-size:0.85rem; color:var(--text-muted);">
-                        <i class="fa-solid fa-user"></i> ${l.socio.usuario}
+                        <i class="fa-solid fa-user"></i> ${l.usuario}
                    </div>
                    <div style="font-size:0.8rem; margin-top:0.25rem; display:flex; align-items:center; gap:0.5rem;">
-                        <span class="badge ${isOverdue ? 'badge-danger' : 'badge-success'}" style="font-size:0.7rem;">
-                            ${isOverdue ? `⚠️ Vencido (${Math.abs(diffDays)}d)` : `✓ ${diffDays} días`}
+                        <span class="badge ${l.badgeClass}" style="font-size:0.7rem;">
+                            ${l.estaVencido ? `⚠️ Vencido (${Math.abs(l.diasRestantes)}d)` : `✓ ${l.diasRestantes} días`}
                         </span>
                    </div>
                 </div>
@@ -378,47 +380,53 @@ async function loadAllLoansList() {
                     <i class="fa-solid fa-arrow-rotate-left"></i> Devolver
                 </button>
              `;
-            div.querySelector('.btn-return').addEventListener('click', () => devolverPrestamo(l.idPrestamo));
-            container.appendChild(div);
+            const btnReturn = div.querySelector('.btn-return');
+            btnReturn.addEventListener('click', (e) => devolverPrestamo(l.idPrestamo, e.currentTarget));
+            fragment.appendChild(div);
         });
+        container.appendChild(fragment);
     } catch (e) {
         console.error(e);
         container.innerHTML = '<div style="color:var(--danger)">Error al cargar préstamos</div>';
     }
 }
 
-async function prestarLibro(idBloqueo) {
+async function prestarLibro(idBloqueo, btn) {
     if (!confirm('¿Formalizar préstamo para este usuario?')) return;
+
+    // UI Safety: Deshabilitar y mostrar carga
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Procesando...';
+
     try {
-        const response = await fetchWithAuth(`/bloqueos/${idBloqueo}/formalizar`, { method: 'POST' });
-        if (response.ok) {
-            showToast('Préstamo formalizado correctamente', 'success');
-            triggerConfetti();
-            loadLibrarianView(); // Reload lists
-        } else {
-            const msg = await response.text();
-            showToast('Error: ' + msg, 'error');
-        }
+        await fetchWithAuth(`/bloqueos/${idBloqueo}/formalizar`, { method: 'POST' });
+        showToast('¡Préstamo formalizado! El libro está ahora en manos del socio.', 'success');
+        triggerConfetti();
+        loadLibrarianView(); // Reload lists
     } catch (e) {
-        console.error(e);
-        showToast('Error de conexión', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+        // El error ya fue notificado por fetchWithAuth
     }
 }
 
-async function devolverPrestamo(idPrestamo) {
+async function devolverPrestamo(idPrestamo, btn) {
     if (!confirm('¿Confirmar devolución del libro?')) return;
+
+    // UI Safety: Deshabilitar y mostrar carga
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Verificando...';
+
     try {
-        const response = await fetchWithAuth(`/prestamos/${idPrestamo}/devolver`, { method: 'POST' });
-        if (response.ok) {
-            showToast('Libro devuelto al inventario', 'success');
-            loadLibrarianView(); // Reload lists
-        } else {
-            const msg = await response.text();
-            showToast('Error: ' + msg, 'error');
-        }
+        await fetchWithAuth(`/prestamos/${idPrestamo}/devolver`, { method: 'POST' });
+        showToast('Libro devuelto con éxito. Ya está disponible en el catálogo.', 'success');
+        loadLibrarianView(); // Reload lists
     } catch (e) {
-        console.error(e);
-        showToast('Error de conexión', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+        // El error ya fue notificado por fetchWithAuth
     }
 }
 

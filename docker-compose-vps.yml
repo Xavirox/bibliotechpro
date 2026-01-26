@@ -1,11 +1,35 @@
 # ============================================================
-# BiblioTech Pro - Configuración VPS (Puertos 9140-9149)
+# BiblioTech Pro - Docker Compose para VPS
 # ============================================================
-version: '3.8'
+# Arquitectura de Microservicios:
+#   ┌─────────────────────────────────────────────────────────┐
+#   │                     NGINX (Puerto 9142)                 │
+#   │   /         → Frontend estático                         │
+#   │   /api/*    → Backend Java                              │
+#   │   /magic/*  → Servicio Python (Antigravity)             │
+#   └─────────────────────────────────────────────────────────┘
+#              │                      │
+#              ▼                      ▼
+#   ┌──────────────────┐    ┌──────────────────┐
+#   │   Backend Java   │    │ Python Antigravity│
+#   │   (Puerto 9141)  │    │   (Puerto 9143)   │
+#   └──────────────────┘    └──────────────────┘
+#              │                      │
+#              ▼                      │
+#   ┌──────────────────┐              │
+#   │   Oracle DB      │◄─────────────┘
+#   │   (Puerto 9140)  │
+#   └──────────────────┘
+#
+# USO:
+#   docker compose -f docker-compose-vps.yml up -d --build
+#   docker compose -f docker-compose-vps.yml logs -f
+#   docker compose -f docker-compose-vps.yml down
+# ============================================================
 
 services:
   # =========================================================
-  # ORACLE DATABASE (Puerto 9140)
+  # ORACLE DATABASE 21c XE
   # =========================================================
   oracle-db:
     image: gvenzl/oracle-xe:21-slim
@@ -27,34 +51,105 @@ services:
       interval: 60s
       timeout: 30s
       retries: 5
+      start_period: 180s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
   # =========================================================
-  # BACKEND SPRING BOOT (Puerto 9141)
+  # PYTHON ANTIGRAVITY SERVICE (AI/ML)
   # =========================================================
-  # Para el VPS es mejor containerizarlo también
+  ai-service:
+    build:
+      context: ./ai_service
+      dockerfile: Dockerfile
+    container_name: bibliotech-ai-vps
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "9143:8000"
+    networks:
+      - bibliotech-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # =========================================================
+  # BACKEND SPRING BOOT (API Principal)
+  # =========================================================
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.vps
     container_name: bibliotech-backend-vps
     ports:
       - "9141:9091"
     environment:
-      # Conexión interna a base de datos (nombre del servicio)
+      # Conexión a BD (nombre del servicio Docker)
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle-db:1521/XEPDB1
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-biblioteca}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-biblioteca123}
+      # Secrets
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      # N8N Integration
+      N8N_WEBHOOK_BASE_URL: http://n8n:5678/webhook/
+      # JVM Options
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC"
     depends_on:
       oracle-db:
+        condition: service_healthy
+      ai-service:
         condition: service_healthy
     restart: unless-stopped
     networks:
       - bibliotech-net
+    # profiles:
+    #   - with-bot # Comentado para que inicie siempre por defecto si está configurado
+
+    # =========================================================
+    # TELEGRAM BOT (Notificaciones y Consultas)
+    # =========================================================
+  telegram-bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: bibliotech-telegram-bot
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      API_URL: http://backend:9091/api
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook/
+      RECOMMENDATION_INTERVAL: ${RECOMMENDATION_INTERVAL:-1}
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - bot_data:/app/data
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - bibliotech-net
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import sys; sys.exit(0)" ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   # =========================================================
-  # FRONTEND NGINX (Puerto 9142)
+  # NGINX (Servidor Frontend y Proxy Reverso)
   # =========================================================
   nginx:
     image: nginx:alpine
@@ -63,7 +158,7 @@ services:
       - "9142:80"
     volumes:
       - ./frontend:/usr/share/nginx/html:ro
-      - ./deploy/nginx/vps.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/nginx-vps.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - backend
     restart: unless-stopped
@@ -71,27 +166,42 @@ services:
       - bibliotech-net
 
   # =========================================================
-  # TELEGRAM BOT (Sin puerto expuesto)
+  # N8N WORKFLOW AUTOMATION
   # =========================================================
-  telegram-bot:
-    build:
-      context: ./bot
-      dockerfile: Dockerfile
-    container_name: bibliotech-bot-vps
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: bibliotech-n8n-vps
+    restart: unless-stopped
+    ports:
+      - "9144:5678"
     environment:
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      # URL interna del backend
-      API_URL: http://backend:9091/api
-    depends_on:
-      - backend
-    restart: unless-stopped
+      - N8N_HOST=n8n
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://asir.javiergimenez.es:9144/
+      - GENERIC_TIMEZONE=Europe/Madrid
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n:/home/node/workflows:ro
     networks:
       - bibliotech-net
 
+# =========================================================
+# REDES
+# =========================================================
 networks:
   bibliotech-net:
     driver: bridge
 
+# =========================================================
+# VOLÚMENES PERSISTENTES
+# =========================================================
 volumes:
   oracle-data:
     name: bibliotech-oracle-data-vps
+  n8n_data:
+    name: bibliotech-n8n-data-vps
+  bot_data:
+    name: bibliotech-bot-data-vps

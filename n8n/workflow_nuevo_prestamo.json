@@ -1,0 +1,83 @@
+{
+    "name": "Notificación Nuevo Préstamo v3",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "webhook-nuevo-prestamo-v3",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                0,
+                0
+            ],
+            "id": "webhook-prestamo",
+            "name": "Webhook Nuevo Préstamo"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Obtener datos del webhook\nconst datos = items[0].json;\n\n// Formatear fecha\nconst fecha = new Date().toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });\n\n// Crear mensaje para Telegram\nconst mensaje = `📖 *Nuevo Préstamo Formalizado*\\n\\n👤 *Socio:* ${datos.usuario || 'N/A'}\\n📚 *Libro:* ${datos.libro || 'N/A'}\\n📅 *Fecha Entrega:* ${fecha}\\n\\n_¡Disfruta de tu lectura!_`;\n\nreturn [{\n  json: {\n    ...datos,\n    mensaje_telegram: mensaje,\n    fecha_log: fecha\n  }\n}];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                220,
+                0
+            ],
+            "id": "formatter-prestamo",
+            "name": "Formatear Mensaje"
+        },
+        {
+            "parameters": {
+                "chatId": "-4870856336",
+                "text": "={{ $json.mensaje_telegram }}",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                480,
+                0
+            ],
+            "id": "telegram-notify-prestamo",
+            "name": "Enviar a Telegram",
+            "credentials": {
+                "telegramApi": {
+                    "id": "YOUR_TELEGRAM_CREDENTIALS_ID",
+                    "name": "BiblioTech Bot"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook Nuevo Préstamo": {
+            "main": [
+                [
+                    {
+                        "node": "Formatear Mensaje",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Formatear Mensaje": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar a Telegram",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

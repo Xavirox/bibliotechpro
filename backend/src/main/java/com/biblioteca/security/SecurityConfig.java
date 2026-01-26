@@ -105,6 +105,12 @@ public class SecurityConfig {
                 "http://127.0.0.1:8080",
                 "http://asir.javiergimenez.es:9142", // VPS Frontend Port
                 "http://asir.javiergimenez.es")); // VPS Public Host
+
+        // SEGURIDAD C-05: Soporte para variable de entorno en producción
+        String envAllowedOrigins = System.getenv("AUTH_CORS_ALLOWED_ORIGINS");
+        if (envAllowedOrigins != null && !envAllowedOrigins.isEmpty()) {
+            configuration.setAllowedOrigins(java.util.Arrays.asList(envAllowedOrigins.split(",")));
+        }
         configuration.setAllowedMethods(java.util.Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.Arrays.asList(
                 "Authorization",

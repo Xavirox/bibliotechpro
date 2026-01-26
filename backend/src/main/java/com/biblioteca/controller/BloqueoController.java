@@ -36,8 +36,9 @@ public class BloqueoController {
 
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String username = auth.getName();
-            Bloqueo bloqueo = bloqueoService.crearBloqueo(username, Objects.requireNonNull(request.getIdEjemplar()));
+            String username = (auth != null) ? auth.getName() : "anonymous";
+            Bloqueo bloqueo = bloqueoService.crearBloqueo(Objects.requireNonNull(username),
+                    Objects.requireNonNull(request.getIdEjemplar()));
             return ResponseEntity.ok(bloqueo);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

@@ -13,7 +13,7 @@ public class Ejemplar {
     @Column(name = "ID_EJEMPLAR")
     private Long idEjemplar;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_LIBRO", nullable = false)
     private Libro libro;
 

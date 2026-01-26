@@ -35,12 +35,17 @@ export async function loadMyBlocks() {
     blocksContainer.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cargando...';
 
     try {
-        const response = await fetchWithAuth(`/bloqueos/mios`);
-        const bloqueos = await response.json();
+        const bloqueos = await fetchWithAuth(`/bloqueos/mios`);
 
         blocksContainer.innerHTML = '';
         if (bloqueos.length === 0) {
-            blocksContainer.innerHTML = '<p style="color:var(--text-muted)">No tienes reservas activas.</p>';
+            blocksContainer.innerHTML = `
+                <div style="text-align:center; padding:1.5rem; color:var(--text-muted); border: 2px dashed var(--border); border-radius:1rem;">
+                    <i class="fa-solid fa-calendar-plus" style="font-size:2rem; margin-bottom:0.5rem; opacity:0.3;"></i>
+                    <p>No tienes reservas activas.</p>
+                    <button class="btn btn-sm btn-outline" onclick="document.querySelector('[data-target=\'catalog-section\']').click()" style="margin-top:0.5rem; font-size:0.75rem;">Ir al catálogo</button>
+                </div>
+            `;
             return;
         }
 
@@ -54,10 +59,10 @@ export async function loadMyBlocks() {
                     <i class="fa-solid fa-clock"></i>
                 </div>
                 <div class="book-info">
-                    <div class="book-title">Reserva Activa</div>
+                    <div class="book-title">Reserva activa</div>
                     <p style="font-size:0.9rem;"><strong>Ejemplar:</strong> ${b.ejemplar.codigoBarras}</p>
                     <p style="font-size:0.9rem; margin-bottom:1rem;"><strong>Vence:</strong> ${new Date(b.fechaFin).toLocaleTimeString()}</p>
-                    <button class="btn btn-danger btn-cancel-block" style="width:100%">Cancelar Reserva</button>
+                    <button class="btn btn-danger btn-cancel-block" style="width:100%">Cancelar reserva</button>
                 </div>
             `;
             containerBlockCancel(card, b.idBloqueo);
@@ -77,20 +82,15 @@ async function cancelarBloqueo(idBloqueo) {
     if (!confirm('¿Cancelar reserva?')) return;
 
     try {
-        const response = await fetchWithAuth(`/bloqueos/${idBloqueo}/cancelar`, {
+        await fetchWithAuth(`/bloqueos/${idBloqueo}/cancelar`, {
             method: 'POST'
         });
 
-        if (response.ok) {
-            showToast('Reserva cancelada.', 'info');
-            loadMyBlocks();
-            // Refresh catalog availability without full reload if possible, or just reload catalog
-            window.dispatchEvent(new CustomEvent('catalog:refresh'));
-        } else {
-            showToast('Error al cancelar', 'error');
-        }
+        showToast('Reserva cancelada.', 'info');
+        loadMyBlocks();
+        window.dispatchEvent(new CustomEvent('catalog:refresh'));
     } catch (err) {
-        showToast('Error de conexión', 'error');
+        // El error ya fue notificado por fetchWithAuth
     }
 }
 
@@ -100,8 +100,7 @@ export async function loadMyLoansData() {
     if (!historyContainer || !activeContainer) return;
 
     try {
-        const response = await fetchWithAuth(`/prestamos/mis-prestamos`);
-        const loans = await response.json();
+        const loans = await fetchWithAuth(`/prestamos/mis-prestamos`);
 
         updateActiveReadingWidget(loans);
 
@@ -111,35 +110,30 @@ export async function loadMyLoansData() {
         // --- Render Active Loans ---
         activeContainer.innerHTML = '';
         if (activeLoans.length === 0) {
-            activeContainer.innerHTML = '<p style="color:var(--text-muted)">No estás leyendo nada actualmente.</p>';
+            activeContainer.innerHTML = `
+                <div style="text-align:center; padding:1.5rem; color:var(--text-muted); border: 2px dashed var(--border); border-radius:1rem; grid-column:1/-1;">
+                    <i class="fa-solid fa-mug-hot" style="font-size:2rem; margin-bottom:0.5rem; opacity:0.3;"></i>
+                    <p>No tienes libros prestados en este momento.</p>
+                    <p style="font-size:0.8rem;">¡Es un buen momento para empezar una nueva lectura!</p>
+                </div>
+            `;
         } else {
             activeLoans.forEach(l => {
                 const card = document.createElement('div');
                 card.className = 'book-card';
                 card.style.borderLeft = '4px solid var(--primary)';
 
-                const hoy = new Date();
-                const due = new Date(l.fechaPrevistaDevolucion);
-                const diffTime = due - hoy;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                const isLate = diffDays < 0;
-
                 card.innerHTML = `
                      <div class="book-info">
-                        <div class="book-title">${l.ejemplar.libro.titulo}</div>
+                        <div class="book-title">${l.tituloLibro}</div>
                         <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:0.5rem;">
                             <i class="fa-solid fa-calendar-check"></i> Iniciado: ${new Date(l.fechaPrestamo).toLocaleDateString()}
                         </p>
-                         <p style="font-weight:600; color: ${isLate ? 'var(--danger)' : 'var(--success)'}">
-                            ${isLate ? `<i class="fa-solid fa-circle-exclamation"></i> Vencido hace ${Math.abs(diffDays)} días` : `<i class="fa-solid fa-clock"></i> Vence en ${diffDays} días`}
-                        </p>
+                         <p style="font-weight:600; color: ${l.estaVencido ? 'var(--danger)' : 'var(--success)'}">
+                            ${l.estaVencido ? `<i class="fa-solid fa-circle-exclamation"></i> Vencido hace ${Math.abs(l.diasRestantes)} días` : `<i class="fa-solid fa-clock"></i> Vence en ${l.diasRestantes} días`}
                         </p>
                     </div>
                 `;
-                // Botón eliminado: Los socios no pueden devolver libros según requisitos.
-                // const btnReturn = card.querySelector('.btn-return-loan');
-                // if (btnReturn) btnReturn.addEventListener('click', () => devolverPrestamoUsuario(l.idPrestamo));
-
                 activeContainer.appendChild(card);
             });
         }
@@ -153,11 +147,11 @@ export async function loadMyLoansData() {
                 const tr = document.createElement('tr');
                 tr.style.borderBottom = '1px solid var(--border)';
                 tr.innerHTML = `
-                    <td style="padding:1rem; font-weight:500;">${l.ejemplar.libro.titulo}</td>
+                    <td style="padding:1rem; font-weight:500;">${l.tituloLibro}</td>
                     <td style="padding:1rem;">${new Date(l.fechaPrestamo).toLocaleDateString()}</td>
                     <td style="padding:1rem;">${l.fechaDevolucionReal ? new Date(l.fechaDevolucionReal).toLocaleDateString() : '-'}</td>
                     <td style="padding:1rem; text-align:center;">
-                        <span class="badge badge-success">${l.estado}</span>
+                        <span class="badge ${l.badgeClass}">${l.estado}</span>
                     </td>
                 `;
                 historyContainer.appendChild(tr);
@@ -209,7 +203,7 @@ function updateActiveReadingWidget(loans) {
                     <i class="fa-solid fa-book-open" style="margin-right: 0.5rem;"></i> Leyendo ahora
                 </h4>
                 <div style="font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; color: white;">
-                    ${activeLoan.ejemplar && activeLoan.ejemplar.libro ? activeLoan.ejemplar.libro.titulo : 'Libro Desconocido'}
+                    ${activeLoan.tituloLibro || 'Libro Desconocido'}
                 </div>
                 
                 <!-- Progress Bar -->
@@ -233,26 +227,18 @@ export async function loadRecommendations() {
     const loading = document.getElementById('gemini-loading');
     const btn = document.getElementById('get-recs-btn');
 
+    if (!container) return;
+
     container.innerHTML = '';
     loading.classList.remove('hidden');
     btn.disabled = true;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando...';
 
     try {
-        const response = await fetchWithAuth(`/recomendaciones/mias`);
-        const text = await response.text();
+        const recommendations = await fetchWithAuth(`/recomendaciones/mias`);
         loading.classList.add('hidden');
 
-        let recommendations = [];
-        try {
-            let cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            recommendations = JSON.parse(cleanText);
-        } catch (e) {
-            container.innerHTML = `<div class="rec-item" style="color:var(--text-main); grid-column:1/-1; background:white; padding:2rem; border-radius:1rem;">${text}</div>`;
-            return;
-        }
-
-        if (Array.isArray(recommendations)) {
+        if (Array.isArray(recommendations) && recommendations.length > 0) {
             recommendations.forEach((rec, index) => {
                 const card = document.createElement('div');
                 card.className = 'book-card fade-in';
@@ -271,12 +257,13 @@ export async function loadRecommendations() {
                 container.appendChild(card);
             });
         } else {
-            container.innerHTML = 'Formato inesperado de IA.';
+            container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-muted)">No hay recomendaciones disponibles en este momento.</div>';
         }
 
     } catch (err) {
         loading.classList.add('hidden');
         showToast('Error al obtener recomendaciones', 'error');
+        container.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--danger)">Error al conectar con el servicio de IA.</div>';
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generar Nuevas';

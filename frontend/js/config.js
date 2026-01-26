@@ -19,13 +19,13 @@ const getApiUrl = () => {
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
 
-    // Si estamos corriendo localmente
+    // Si estamos corriendo localmente (desarrollo)
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return `${protocol}//${hostname}:9091/api`;
     }
 
-    // Si estamos en VPS (asir.javiergimenez.es u otro), el backend está en el puerto 9141
-    return `${protocol}//${hostname}:9141/api`;
+    // En producción (VPS), usamos la ruta relativa /api gestionada por Nginx
+    return '/api';
 };
 
 /**

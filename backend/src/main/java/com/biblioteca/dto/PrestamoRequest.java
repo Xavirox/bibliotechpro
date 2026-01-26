@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 /**
- * DTO para solicitudes de creación de préstamos.
+ * DTO para solicitudes de creación de préstamos. (Final)
  * Incluye validaciones de entrada para seguridad y consistencia de datos.
  */
 public class PrestamoRequest {

@@ -30,7 +30,7 @@ public class Bloqueo {
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaFin;
 
-    @Column(name = "ESTADO", nullable = false)
+    @Column(name = "ESTADO", nullable = false, length = 20)
     private String estado; // ACTIVO, CANCELADO, EXPIRADO, CONVERTIDO
 
     // Getters and Setters

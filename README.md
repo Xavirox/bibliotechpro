@@ -69,7 +69,25 @@
 - ✅ Totalmente responsive (desktop, tablet, móvil)
 - ✅ Accesibilidad WCAG 2.1 AA
 
----
+### 🤖 Bot de Telegram
+
+- ✅ Consultas del catálogo en tiempo real
+- ✅ Recomendaciones automáticas cada hora
+- ✅ Sistema de suscripciones opt-in
+- ✅ Búsqueda por categorías
+- ✅ Integración con n8n para automatizaciones
+- ✅ Notificaciones de reservas y préstamos
+
+**Comandos principales:**
+```
+/catalogo   - Ver libros disponibles
+/buscar X   - Buscar por título/autor
+/recomendar - Obtener recomendación IA
+/suscribir  - Activar notificaciones horarias
+```
+
+> Ver documentación completa en [docs/BOT_TELEGRAM.md](docs/BOT_TELEGRAM.md)
+
 
 ## 🏗️ Arquitectura
 
@@ -178,7 +196,7 @@ biblioteca_web/
 | Usuario | Contraseña | Rol |
 |---------|------------|-----|
 | socio1 | password | SOCIO |
-| bibliotecario1 | password | BIBLIOTECARIO |
+| biblio | password | BIBLIOTECARIO |
 | admin | password | ADMIN |
 
 ---

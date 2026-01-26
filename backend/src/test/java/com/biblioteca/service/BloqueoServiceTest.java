@@ -71,7 +71,7 @@ class BloqueoServiceTest {
     void crearBloqueo_Success() {
         // Arrange
         when(socioRepository.findByUsuario("testuser")).thenReturn(Optional.of(socio));
-        when(ejemplarRepository.findById(1L)).thenReturn(Optional.of(ejemplar));
+        when(ejemplarRepository.findByIdWithLock(1L)).thenReturn(Optional.of(ejemplar));
         when(bloqueoRepository.save(any(Bloqueo.class))).thenAnswer(invocation -> {
             Bloqueo b = invocation.getArgument(0);
             b.setIdBloqueo(1L);
@@ -99,7 +99,7 @@ class BloqueoServiceTest {
     void crearBloqueo_RaceCondition_ThrowsIllegalStateException() {
         // Arrange
         when(socioRepository.findByUsuario("testuser")).thenReturn(Optional.of(socio));
-        when(ejemplarRepository.findById(1L)).thenReturn(Optional.of(ejemplar));
+        when(ejemplarRepository.findByIdWithLock(1L)).thenReturn(Optional.of(ejemplar));
 
         // Simular que el repositorio lanza la excepcion de integridad (por el indice
         // unico)
@@ -124,7 +124,7 @@ class BloqueoServiceTest {
         // Arrange
         ejemplar.setEstado("PRESTADO");
         when(socioRepository.findByUsuario("testuser")).thenReturn(Optional.of(socio));
-        when(ejemplarRepository.findById(1L)).thenReturn(Optional.of(ejemplar));
+        when(ejemplarRepository.findByIdWithLock(1L)).thenReturn(Optional.of(ejemplar));
 
         // Act & Assert
         IllegalStateException exception = assertThrows(
@@ -154,7 +154,7 @@ class BloqueoServiceTest {
     void crearBloqueo_EjemplarNotFound() {
         // Arrange
         when(socioRepository.findByUsuario("testuser")).thenReturn(Optional.of(socio));
-        when(ejemplarRepository.findById(99L)).thenReturn(Optional.empty());
+        when(ejemplarRepository.findByIdWithLock(99L)).thenReturn(Optional.empty());
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(

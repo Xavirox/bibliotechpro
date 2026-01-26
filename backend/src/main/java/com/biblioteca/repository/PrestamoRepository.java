@@ -9,6 +9,8 @@ import java.util.List;
 public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
     List<Prestamo> findBySocioIdSocio(Long idSocio);
 
+    long countBySocioIdSocioAndEstado(Long idSocio, String estado);
+
     // Optimized query with JOIN FETCH to avoid N+1 problem
     @Query("SELECT p FROM Prestamo p JOIN FETCH p.ejemplar e JOIN FETCH e.libro JOIN FETCH p.socio WHERE p.socio.idSocio = :idSocio")
     List<Prestamo> findBySocioIdSocioWithDetails(@Param("idSocio") Long idSocio);
@@ -21,4 +23,10 @@ public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
     // Query optimizada para cargar todos los préstamos con relaciones
     @Query("SELECT p FROM Prestamo p JOIN FETCH p.ejemplar e JOIN FETCH e.libro JOIN FETCH p.socio")
     List<Prestamo> findAllWithDetails();
+
+    @Query("SELECT DISTINCT p.ejemplar.libro.idLibro FROM Prestamo p WHERE p.socio.idSocio = :idSocio")
+    List<Long> findIdsLibrosLeidosBySocio(@Param("idSocio") Long idSocio);
+
+    @Query("SELECT p FROM Prestamo p JOIN FETCH p.ejemplar e JOIN FETCH e.libro JOIN FETCH p.socio WHERE p.idPrestamo = :id")
+    java.util.Optional<Prestamo> findByIdWithDetails(@Param("id") Long id);
 }

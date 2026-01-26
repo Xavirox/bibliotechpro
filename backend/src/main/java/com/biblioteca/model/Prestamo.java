@@ -14,11 +14,11 @@ public class Prestamo {
     @Column(name = "ID_PRESTAMO")
     private Long idPrestamo;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_SOCIO", nullable = false)
     private Socio socio;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ID_EJEMPLAR", nullable = false)
     private Ejemplar ejemplar;
 

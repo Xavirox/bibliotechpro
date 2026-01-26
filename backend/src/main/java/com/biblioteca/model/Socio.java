@@ -20,6 +20,7 @@ public class Socio {
     @Column(name = "USUARIO", unique = true, nullable = false)
     private String usuario;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @NotBlank(message = "La contraseña es obligatoria")
     @Column(name = "PASSWORD_HASH", nullable = false)
     private String passwordHash;

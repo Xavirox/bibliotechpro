@@ -1,189 +1,157 @@
 package com.biblioteca.service;
 
+import com.biblioteca.events.PrestamoDevueltoEvent;
 import com.biblioteca.model.Ejemplar;
 import com.biblioteca.model.Prestamo;
 import com.biblioteca.model.Socio;
 import com.biblioteca.repository.EjemplarRepository;
 import com.biblioteca.repository.PrestamoRepository;
 import com.biblioteca.repository.SocioRepository;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
-/**
- * Servicio para gestión de préstamos de libros.
- * 
- * <h2>ARQUITECTURA: Triggers Oracle actúan como segunda línea de
- * validación</h2>
- * <p>
- * La lógica de negocio está implementada en DOS capas:
- * </p>
- * 
- * <h3>1. Esta capa Java (validación principal):</h3>
- * <ul>
- * <li>Valida disponibilidad del ejemplar</li>
- * <li>Proporciona mensajes de error claros para el frontend</li>
- * <li>Gestiona transaccionalidad Spring</li>
- * </ul>
- * 
- * <h3>2. Triggers Oracle (validación de seguridad en DB):</h3>
- * <ul>
- * <li>TRG_VALIDAR_PRESTAMO: Verifica penalización, límite de préstamos, estado
- * ejemplar</li>
- * <li>TRG_ACTUALIZAR_ESTADOS_PRESTAMO: Actualiza estado del ejemplar y
- * bloqueo</li>
- * <li>TRG_DEVOLUCION_PRESTAMO: Libera ejemplar al devolver</li>
- * </ul>
- * 
- * <p>
- * <strong>DECISIÓN DE DISEÑO:</strong> Se mantiene duplicación controlada para:
- * </p>
- * <ul>
- * <li>Mejor UX con mensajes de error claros desde Java</li>
- * <li>Integridad garantizada a nivel de BD (triggers)</li>
- * <li>Cumplimiento de requisitos del módulo ASIR (uso de triggers)</li>
- * </ul>
- * 
- * @see BloqueoService
- */
 @Service
 public class PrestamoService {
 
     private static final Logger log = LoggerFactory.getLogger(PrestamoService.class);
+    private static final long DIAS_PRESTAMO = 15L;
 
     private final PrestamoRepository prestamoRepository;
     private final SocioRepository socioRepository;
     private final EjemplarRepository ejemplarRepository;
+    private final ApplicationEventPublisher eventPublisher;
+    private final WebhookService webhookService;
+    private final jakarta.persistence.EntityManager entityManager;
 
-    public PrestamoService(PrestamoRepository prestamoRepository,
-            SocioRepository socioRepository,
-            EjemplarRepository ejemplarRepository) {
+    public PrestamoService(PrestamoRepository prestamoRepository, SocioRepository socioRepository,
+            EjemplarRepository ejemplarRepository, ApplicationEventPublisher eventPublisher,
+            WebhookService webhookService, jakarta.persistence.EntityManager entityManager) {
         this.prestamoRepository = prestamoRepository;
         this.socioRepository = socioRepository;
         this.ejemplarRepository = ejemplarRepository;
+        this.eventPublisher = eventPublisher;
+        this.webhookService = webhookService;
+        this.entityManager = entityManager;
     }
 
-    /**
-     * Creates a new loan for a member.
-     * This operation is transactional: if any step fails, all changes are rolled
-     * back.
-     */
     @Transactional
-    public Prestamo crearPrestamo(@NonNull Long idSocio, @NonNull Long idEjemplar) {
-        log.info("Creando préstamo - socio: {}, ejemplar: {}", idSocio, idEjemplar);
+    public Prestamo crearPrestamo(Long idSocio, Long idEjemplar) {
+        log.info("Creando préstamo - Socio: {}, Ejemplar: {}", idSocio, idEjemplar);
 
-        Socio socio = socioRepository.findById(idSocio)
-                .orElseThrow(() -> new IllegalArgumentException("Socio no encontrado con ID: " + idSocio));
+        Socio socio = buscarSocio(idSocio);
+        Ejemplar ejemplar = buscarEjemplar(idEjemplar);
 
-        // VALIDACIÓN: Socio penalizado
-        if (socio.getPenalizacionHasta() != null && socio.getPenalizacionHasta().after(new Date())) {
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
-            throw new IllegalStateException(
-                    "El socio está penalizado hasta " + sdf.format(socio.getPenalizacionHasta()));
+        // Validación preventiva en Java
+        if (!"DISPONIBLE".equals(ejemplar.getEstado()) && !"BLOQUEADO".equals(ejemplar.getEstado())) {
+            throw new IllegalStateException("El ejemplar no está disponible (Estado: " + ejemplar.getEstado() + ")");
         }
 
-        // VALIDACIÓN: Límite de préstamos activos
-        long prestamosActivos = prestamoRepository.findBySocioIdSocio(idSocio).stream()
-                .filter(p -> "ACTIVO".equals(p.getEstado()))
-                .count();
-        int maxPrestamos = socio.getMaxPrestamosActivos() != null ? socio.getMaxPrestamosActivos() : 3;
-        if (prestamosActivos >= maxPrestamos) {
-            throw new IllegalStateException(
-                    "El socio ha alcanzado el límite máximo de préstamos activos (" + maxPrestamos + ")");
-        }
-
-        Ejemplar ejemplar = ejemplarRepository.findById(idEjemplar)
-                .orElseThrow(() -> new IllegalArgumentException("Ejemplar no encontrado con ID: " + idEjemplar));
-
-        if (!"DISPONIBLE".equals(ejemplar.getEstado())) {
-            throw new IllegalStateException("El ejemplar no está disponible. Estado actual: " + ejemplar.getEstado());
-        }
-
-        // Create the loan
         Prestamo prestamo = new Prestamo();
         prestamo.setSocio(socio);
         prestamo.setEjemplar(ejemplar);
-        prestamo.setFechaPrestamo(new Date());
-        prestamo.setFechaPrevistaDevolucion(new Date(System.currentTimeMillis() + (15L * 86400000L))); // +15 days
         prestamo.setEstado("ACTIVO");
+        prestamo.setFechaPrestamo(new Date());
+        prestamo.setFechaPrevistaDevolucion(calculaFechaVencimiento());
 
-        // Update the copy status
-        ejemplar.setEstado("PRESTADO");
+        try {
+            // Persistir Préstamo
+            Prestamo guardado = prestamoRepository.save(prestamo);
 
-        // Save both in a single transaction
-        ejemplarRepository.save(ejemplar);
-        Prestamo savedPrestamo = prestamoRepository.save(prestamo);
+            // Actualizar estado del Ejemplar
+            ejemplar.setEstado("PRESTADO");
+            // Nota: Al estar en una transacción, Hibernate detectará el cambio en
+            // 'ejemplar' y lo guardará al finalizar.
+            // Aún así, podemos forzar el guardado si lo deseamos, pero no es estrictamente
+            // necesario con JPA MANAGED entities.
 
-        log.info("Préstamo creado exitosamente - id: {}", savedPrestamo.getIdPrestamo());
-        return savedPrestamo;
+            entityManager.flush();
+            entityManager.refresh(guardado); // Recargar para tener datos frescos de la DB (IDs, defaults)
+
+            webhookService.notificarNuevoPrestamo(socio.getNombre(), ejemplar.getLibro().getTitulo());
+            return guardado;
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.error("Error de integridad al crear préstamo: {}", e.getMessage());
+            throw new IllegalStateException("El ejemplar ya no está disponible o se han violado reglas de negocio.", e);
+        }
     }
 
-    /**
-     * Returns a loan with ownership verification.
-     * This operation is transactional: updates both loan and copy status
-     * atomically.
-     * 
-     * @param idPrestamo      ID del préstamo a devolver
-     * @param username        Usuario que intenta devolver
-     * @param esBibliotecario Si true, puede devolver cualquier préstamo
-     * @throws SecurityException si el usuario no tiene permiso para devolver este
-     *                           préstamo
-     */
     @Transactional
-    public void devolverPrestamo(@NonNull Long idPrestamo, String username, boolean esBibliotecario) {
-        log.info("Devolviendo préstamo - id: {}, usuario: {}, esBibliotecario: {}", idPrestamo, username,
-                esBibliotecario);
+    public void devolverPrestamo(Long idPrestamo, String usuarioEjecutor, boolean esAutoridad) {
+        log.info("Devolviendo préstamo - ID: {}", idPrestamo);
 
-        Prestamo prestamo = prestamoRepository.findById(idPrestamo)
-                .orElseThrow(() -> new IllegalArgumentException("Préstamo no encontrado con ID: " + idPrestamo));
+        Prestamo prestamo = prestamoRepository.findByIdWithDetails(idPrestamo)
+                .orElseThrow(() -> new IllegalArgumentException("Préstamo no encontrado"));
 
-        // SEGURIDAD: Verificar propiedad del préstamo
-        if (!esBibliotecario && !prestamo.getSocio().getUsuario().equals(username)) {
-            log.warn("Intento de devolver préstamo ajeno - préstamo: {}, dueño: {}, solicitante: {}",
-                    idPrestamo, prestamo.getSocio().getUsuario(), username);
-            throw new SecurityException("No puedes devolver un préstamo que no es tuyo");
+        // Idempotencia: Si ya está devuelto, lanzamos excepción (alineado con tests)
+        if ("DEVUELTO".equals(prestamo.getEstado())) {
+            throw new IllegalStateException("El préstamo ya fue devuelto");
         }
 
-        if (!"ACTIVO".equals(prestamo.getEstado())) {
-            throw new IllegalStateException("El préstamo no está activo. Estado actual: " + prestamo.getEstado());
-        }
+        validarDevolucion(prestamo, usuarioEjecutor, esAutoridad);
 
-        // Update loan
+        // Actualizar estado
         prestamo.setEstado("DEVUELTO");
         prestamo.setFechaDevolucionReal(new Date());
 
-        // Update copy status
+        // Liberar ejemplar en memoria para consistencia
         Ejemplar ejemplar = prestamo.getEjemplar();
-        ejemplar.setEstado("DISPONIBLE");
+        if (ejemplar != null) {
+            ejemplar.setEstado("DISPONIBLE");
+            ejemplarRepository.save(ejemplar);
+        }
 
-        // Save both atomically
         prestamoRepository.save(prestamo);
-        ejemplarRepository.save(ejemplar);
 
-        log.info("Préstamo devuelto exitosamente - id: {}", idPrestamo);
+        // Sincronizar estado con la DB (Trigger TRG_DEVOLUCION_PRESTAMO)
+        entityManager.flush();
+        entityManager.refresh(prestamo);
+
+        eventPublisher.publishEvent(new PrestamoDevueltoEvent(this, prestamo));
+    }
+
+    private void validarDevolucion(Prestamo prestamo, String usuario, boolean esAutoridad) {
+        if (!esAutoridad) {
+            boolean esPropietario = prestamo.getSocio() != null && prestamo.getSocio().getUsuario().equals(usuario);
+            if (!esPropietario)
+                throw new SecurityException("No tienes permiso para devolver este préstamo");
+        }
+    }
+
+    private Date calculaFechaVencimiento() {
+        return Date.from(Instant.now().plus(DIAS_PRESTAMO, ChronoUnit.DAYS));
+    }
+
+    private Socio buscarSocio(Long id) {
+        Objects.requireNonNull(id, "ID Socio requerido");
+        return socioRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Socio no existe: " + id));
+    }
+
+    private Ejemplar buscarEjemplar(Long id) {
+        Objects.requireNonNull(id, "ID Ejemplar requerido");
+        return ejemplarRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ejemplar no existe: " + id));
     }
 
     @Transactional(readOnly = true)
     public List<Prestamo> getAllPrestamos(String estado) {
-        // OPTIMIZACIÓN: Usar JOIN FETCH para evitar N+1 y errores de serialización
-        if (estado != null && !estado.isEmpty()) {
-            return prestamoRepository.findByEstadoWithDetails(estado);
-        }
-        return prestamoRepository.findAllWithDetails();
+        return (estado != null) ? prestamoRepository.findByEstadoWithDetails(estado)
+                : prestamoRepository.findAllWithDetails();
     }
 
     @Transactional(readOnly = true)
-    public List<Prestamo> getMisPrestamos(String username) {
-        Long idSocio = socioRepository.findByUsuario(username)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username))
-                .getIdSocio();
-        // OPTIMIZACIÓN: Usar JOIN FETCH para evitar N+1 y errores de serialización
-        return prestamoRepository.findBySocioIdSocioWithDetails(idSocio);
+    public List<Prestamo> getMisPrestamos(String usuario) {
+        return prestamoRepository.findBySocioIdSocioWithDetails(
+                socioRepository.findByUsuario(usuario)
+                        .orElseThrow(() -> new IllegalArgumentException("Usuario desconocido"))
+                        .getIdSocio());
     }
 }

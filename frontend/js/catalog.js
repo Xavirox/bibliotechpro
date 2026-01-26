@@ -107,13 +107,7 @@ export async function loadCatalog(append = false) {
     const endpoint = `/libros/paginated?${queryParams.join('&')}`;
 
     try {
-        const response = await fetchWithAuth(endpoint);
-
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await fetchWithAuth(endpoint);
         const libros = data.content;
         totalPages = data.totalPages;
 
@@ -131,86 +125,15 @@ export async function loadCatalog(append = false) {
             return;
         }
 
-        // Bulk Availability Check
-        let availableBookIds = new Set();
-        try {
-            const copiesResponse = await fetchWithAuth(`/ejemplares?estado=${BOOK_STATUS.DISPONIBLE}`);
-            if (copiesResponse.ok) {
-                const copies = await copiesResponse.json();
-                copies.forEach(copy => {
-                    if (copy.libro && copy.libro.idLibro) availableBookIds.add(copy.libro.idLibro);
-                });
-            }
-        } catch (e) { console.warn('Bulk availability check failed', e); }
+        // Render Items with DocumentFragment (Performance Optimization)
+        const fragment = document.createDocumentFragment();
 
-        // Render Items
         libros.forEach((libro, index) => {
-            const card = document.createElement('div');
-            card.className = 'book-card fade-in';
-            card.style.animationDelay = `${index * 50}ms`;
-
-            const gradient = getGradient(libro.titulo);
-            const icon = getIcon(libro.categoria);
-            const isAvailable = availableBookIds.has(libro.idLibro);
-            if (!isAvailable) card.classList.add('unavailable');
-
-            // Badge de categoría con emoji
-            const categoryEmojis = {
-                'Novela': '📖',
-                'Ciencia Ficción': '🚀',
-                'Fantasía': '🐉',
-                'Biografía': '👤',
-                'Historia': '🏛️',
-                'Tecnología': '💻',
-                'Terror': '👻',
-                'Romance': '💕',
-                'Aventura': '🗺️',
-                'Misterio': '🔍'
-            };
-            const categoryEmoji = categoryEmojis[libro.categoria] || '📚';
-
-            // SEGURIDAD: Escapar todos los datos del servidor para prevenir XSS
-            const safeTitle = escapeHtml(libro.titulo);
-            const safeAuthor = escapeHtml(libro.autor);
-            const safeCategory = escapeHtml(libro.categoria);
-            const safeIsbn = escapeHtml(libro.isbn);
-
-            card.innerHTML = `
-                <div class="book-cover-wrapper" style="position: relative; overflow: hidden; height: 320px;">
-                    <div class="book-cover-placeholder" style="background: ${gradient}; position: absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 0.5rem;">
-                        ${icon}
-                        <span class="cover-fallback-text" style="font-size: 0.75rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.5rem;">Portada no disponible</span>
-                    </div>
-                    <img 
-                        src="https://covers.openlibrary.org/b/isbn/${safeIsbn}-L.jpg?default=false" 
-                        alt="${safeTitle}"
-                        class="book-cover-real"
-                        loading="lazy"
-                        style="width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; opacity: 0; transition: opacity 0.3s;"
-                        onload="this.style.opacity=1; this.previousElementSibling.style.display='none'"
-                        onerror="this.style.display='none';"
-                    />
-                    <div class="book-category-badge" style="position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">
-                        ${categoryEmoji} ${safeCategory}
-                    </div>
-                </div>
-                <div class="book-info">
-                    <div class="book-title" title="${safeTitle}">${safeTitle}</div>
-                    <div class="book-meta">
-                        <div><i class="fa-solid fa-user-pen"></i> ${safeAuthor}</div>
-                        ${libro.anio ? `<div><i class="fa-solid fa-calendar"></i> ${libro.anio}</div>` : ''}
-                    </div>
-                    <button data-id="${libro.idLibro}" class="btn btn-primary btn-ver-dispo" style="width:100%; font-size:0.875rem;">
-                        <i class="fa-solid fa-eye"></i> Ver Disponibilidad
-                    </button>
-                    <div id="ejemplares-${libro.idLibro}" style="margin-top:1rem; font-size:0.875rem;"></div>
-                </div>
-            `;
-            container.appendChild(card);
-
-            const btn = card.querySelector('.btn-ver-dispo');
-            if (btn) btn.addEventListener('click', () => loadEjemplares(libro.idLibro));
+            const card = createBookCard(libro, index, libro.estaDisponible);
+            fragment.appendChild(card);
         });
+
+        container.appendChild(fragment);
 
         // "Load More" Button
         if (currentPage < totalPages - 1) {
@@ -247,19 +170,7 @@ export async function loadEjemplares(idLibro) {
     container.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando...';
 
     try {
-        const response = await fetchWithAuth(`/ejemplares?idLibro=${idLibro}`);
-
-        if (!response.ok) {
-            let msg = 'No disponible';
-            if (response.status === 500) msg = 'Error servidor';
-            else if (response.status === 404) msg = 'No encontrado';
-
-            console.warn(`Error fetching ejemplares (Status: ${response.status})`);
-            container.innerHTML = `<span style="color:var(--danger); font-size:0.9rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${msg}</span>`;
-            return false;
-        }
-
-        const ejemplares = await response.json();
+        const ejemplares = await fetchWithAuth(`/ejemplares?idLibro=${idLibro}`);
         const available = ejemplares.some(ej => ej.estado === BOOK_STATUS.DISPONIBLE);
 
         container.innerHTML = '';
@@ -289,10 +200,11 @@ export async function loadEjemplares(idLibro) {
             // Add Reserve button if eligible
             if (ej.estado === BOOK_STATUS.DISPONIBLE && currentUser && currentUser.rol === 'SOCIO') {
                 const btn = document.createElement('button');
+                btn.className = 'btn-reserve-inline';
                 btn.style.cssText = "border:none; background:none; color:var(--primary); cursor:pointer; font-weight:700; font-size:0.85rem;";
                 btn.textContent = "Reservar";
                 btn.title = "Reservar por 24 horas";
-                btn.addEventListener('click', () => bloquearEjemplar(ej.idEjemplar, idLibro));
+                btn.addEventListener('click', (e) => bloquearEjemplar(ej.idEjemplar, idLibro, e.currentTarget));
                 div.appendChild(btn);
             }
 
@@ -301,42 +213,121 @@ export async function loadEjemplares(idLibro) {
 
         return available;
     } catch (err) {
-        container.innerHTML = 'Error de carga';
+        container.innerHTML = '<span style="color:var(--danger)">No disponible</span>';
         return false;
     }
 }
 
-async function bloquearEjemplar(idEjemplar, idLibro) {
+async function bloquearEjemplar(idEjemplar, idLibro, btn) {
     if (!confirm('¿Reservar este ejemplar por 24h?')) return;
 
+    // UI Safety
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
     try {
-        const response = await fetchWithAuth(`/bloqueos`, {
+        await fetchWithAuth(`/bloqueos`, {
             method: 'POST',
             body: JSON.stringify({ idEjemplar })
         });
 
-        if (response.ok) {
-            showToast('¡Reserva confirmada con éxito!', 'success');
+        showToast('¡Reserva confirmada! Pasa por la biblioteca en las próximas 24h.', 'success');
 
-            // Trigger Sidebar update without full page reload
-            window.dispatchEvent(new CustomEvent('user:refresh-data'));
+        // Trigger Sidebar update without full page reload
+        window.dispatchEvent(new CustomEvent('user:refresh-data'));
 
-            // Refresh specific book availability
-            const isAvailable = await loadEjemplares(idLibro);
+        // Refresh specific book availability
+        const isAvailable = await loadEjemplares(idLibro);
 
-            // Update the card style if no longer available
-            if (!isAvailable) {
-                const btn = document.querySelector(`button[data-id="${idLibro}"]`);
-                if (btn) {
-                    const card = btn.closest('.book-card');
-                    if (card) card.classList.add('unavailable');
-                }
+        // Update the card style if no longer available
+        if (!isAvailable) {
+            const btn = document.querySelector(`button[data-id="${idLibro}"]`);
+            if (btn) {
+                const card = btn.closest('.book-card');
+                if (card) card.classList.add('unavailable');
             }
-        } else {
-            const msg = await response.text();
-            showToast('No se pudo reservar: ' + msg, 'error');
         }
     } catch (err) {
-        showToast('Error de conexión', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+        // El error ya fue notificado por fetchWithAuth
     }
+}
+
+/**
+ * Crea el elemento DOM para una tarjeta de libro.
+ * Separa la lógica de presentación de la lógica de negocio.
+ * 
+ * @param {Object} libro - Datos del libro
+ * @param {number} index - Índice para animación escalonada
+ * @param {boolean} isAvailable - Disponibilidad calculada
+ * @returns {HTMLElement} Nodo DOM de la tarjeta
+ */
+function createBookCard(libro, index, isAvailable) {
+    const card = document.createElement('div');
+    card.className = 'book-card fade-in';
+    card.style.animationDelay = `${index * 50}ms`;
+
+    const gradient = getGradient(libro.titulo);
+    const icon = getIcon(libro.categoria);
+    if (!isAvailable) card.classList.add('unavailable');
+
+    // Badge de categoría con emoji
+    const categoryEmojis = {
+        'Novela': '📖',
+        'Ciencia Ficción': '🚀',
+        'Fantasía': '🐉',
+        'Biografía': '👤',
+        'Historia': '🏛️',
+        'Tecnología': '💻',
+        'Terror': '👻',
+        'Romance': '💕',
+        'Aventura': '🗺️',
+        'Misterio': '🔍'
+    };
+    const categoryEmoji = categoryEmojis[libro.categoria] || '📚';
+
+    // SEGURIDAD: Escapar todos los datos del servidor para prevenir XSS
+    const safeTitle = escapeHtml(libro.titulo);
+    const safeAuthor = escapeHtml(libro.autor);
+    const safeCategory = escapeHtml(libro.categoria);
+    const safeIsbn = escapeHtml(libro.isbn);
+
+    card.innerHTML = `
+        <div class="book-cover-wrapper" style="position: relative; overflow: hidden; height: 320px;">
+            <div class="book-cover-placeholder" style="background: ${gradient}; position: absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 0.5rem;">
+                ${icon}
+                <span class="cover-fallback-text" style="font-size: 0.75rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.5rem;">Portada no disponible</span>
+            </div>
+            <img 
+                src="https://covers.openlibrary.org/b/isbn/${safeIsbn}-L.jpg?default=false" 
+                alt="${safeTitle}"
+                class="book-cover-real"
+                loading="lazy"
+                style="width: 100%; height: 100%; object-fit: cover; position: absolute; top:0; left:0; opacity: 0; transition: opacity 0.3s;"
+                onload="this.style.opacity=1; this.previousElementSibling.style.display='none'"
+                onerror="this.style.display='none';"
+            />
+            <div class="book-category-badge" style="position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">
+                ${categoryEmoji} ${safeCategory}
+            </div>
+        </div>
+        <div class="book-info">
+            <div class="book-title" title="${safeTitle}">${safeTitle}</div>
+            <div class="book-meta">
+                <div><i class="fa-solid fa-user-pen"></i> ${safeAuthor}</div>
+                ${libro.anio ? `<div><i class="fa-solid fa-calendar"></i> ${libro.anio}</div>` : ''}
+            </div>
+            <button data-id="${libro.id}" class="btn btn-primary btn-ver-dispo" style="width:100%; font-size:0.875rem;">
+                <i class="fa-solid fa-eye"></i> Ver Disponibilidad
+            </button>
+            <div id="ejemplares-${libro.id}" style="margin-top:1rem; font-size:0.875rem;"></div>
+        </div>
+    `;
+
+    const btn = card.querySelector('.btn-ver-dispo');
+    if (btn) btn.addEventListener('click', () => loadEjemplares(libro.id));
+
+    return card;
 }
