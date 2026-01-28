@@ -4,6 +4,7 @@ import com.biblioteca.model.Socio;
 import com.biblioteca.repository.SocioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,50 +16,47 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
+@lombok.RequiredArgsConstructor
 public class SocioService {
 
-    private static final Logger log = LoggerFactory.getLogger(SocioService.class);
-    private final SocioRepository socioRepository;
+    private static final Logger LOG = LoggerFactory.getLogger(SocioService.class);
+    private final SocioRepository repositorioSocio;
 
-    public SocioService(SocioRepository socioRepository) {
-        this.socioRepository = socioRepository;
+    @Transactional(readOnly = true)
+    public List<Socio> obtenerTodosLosSocios() {
+        return repositorioSocio.findAll();
     }
 
     @Transactional(readOnly = true)
-    public List<Socio> getAllSocios() {
-        return socioRepository.findAll();
+    public Optional<Socio> buscarPorUsuario(String usuario) {
+        return repositorioSocio.findByUsuario(usuario);
     }
 
     @Transactional(readOnly = true)
-    public Optional<Socio> findByUsuario(String usuario) {
-        return socioRepository.findByUsuario(usuario);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<Socio> findById(@org.springframework.lang.NonNull Long id) {
-        return socioRepository.findById(id);
+    public Optional<Socio> buscarPorId(@NonNull Long id) {
+        return repositorioSocio.findById(id);
     }
 
     @Transactional
-    public void penalizarSocio(@org.springframework.lang.NonNull Long idSocio, int dias) {
+    public void penalizarSocio(@NonNull Long idSocio, int dias) {
         Objects.requireNonNull(idSocio, "El ID del socio no puede ser nulo");
-        Socio socio = socioRepository.findById(idSocio)
+        Socio socio = repositorioSocio.findById(idSocio)
                 .orElseThrow(() -> new IllegalArgumentException("Socio no encontrado con ID: " + idSocio));
 
         Date fechaPenalizacion = Date.from(Instant.now().plus(dias, ChronoUnit.DAYS));
 
         socio.setPenalizacionHasta(fechaPenalizacion);
-        socioRepository.save(socio);
-        log.info("Socio {} penalizado hasta {}", socio.getUsuario(), fechaPenalizacion);
+        repositorioSocio.save(socio);
+        LOG.info("Socio {} penalizado hasta {}", socio.getUsuario(), fechaPenalizacion);
     }
 
     @Transactional
-    public Socio updateMaxPrestamos(@org.springframework.lang.NonNull Long idSocio, Integer maxPrestamos) {
+    public Socio actualizarLimitePrestamos(@NonNull Long idSocio, Integer maxPrestamos) {
         Objects.requireNonNull(idSocio, "El ID del socio no puede ser nulo");
-        Socio socio = socioRepository.findById(idSocio)
+        Socio socio = repositorioSocio.findById(idSocio)
                 .orElseThrow(() -> new IllegalArgumentException("Socio no encontrado con ID: " + idSocio));
 
         socio.setMaxPrestamosActivos(maxPrestamos);
-        return socioRepository.save(socio);
+        return repositorioSocio.save(socio);
     }
 }

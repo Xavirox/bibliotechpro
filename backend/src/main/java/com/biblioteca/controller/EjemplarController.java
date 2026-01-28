@@ -2,9 +2,10 @@ package com.biblioteca.controller;
 
 import com.biblioteca.model.Ejemplar;
 import com.biblioteca.service.EjemplarService;
-import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -13,23 +14,23 @@ import java.util.List;
 @Tag(name = "Ejemplares", description = "API para consulta de ejemplares")
 public class EjemplarController {
 
-    private final EjemplarService ejemplarService;
+    private final EjemplarService servicioEjemplar;
 
-    public EjemplarController(EjemplarService ejemplarService) {
-        this.ejemplarService = ejemplarService;
+    public EjemplarController(EjemplarService servicioEjemplar) {
+        this.servicioEjemplar = servicioEjemplar;
     }
 
     @GetMapping
     @Operation(summary = "Listar ejemplares", description = "Busca ejemplares por libro o estado")
-    public List<Ejemplar> getEjemplares(@RequestParam(required = false) Long idLibro,
+    public List<Ejemplar> listarEjemplares(@RequestParam(required = false) Long idLibro,
             @RequestParam(required = false) String estado) {
-        return ejemplarService.getEjemplares(idLibro, estado);
+        return servicioEjemplar.listarEjemplares(idLibro, estado);
     }
 
     @PostMapping("/fix-consistency")
     @Operation(summary = "Corregir consistencia", description = "Sincroniza estados de ejemplares con préstamos/bloqueos activos (solo ADMIN)")
-    public org.springframework.http.ResponseEntity<?> fixConsistency() {
-        ejemplarService.corregirConsistencia();
-        return org.springframework.http.ResponseEntity.ok("Consistencia corregida");
+    public ResponseEntity<?> corregirConsistencia() {
+        servicioEjemplar.corregirConsistencia();
+        return ResponseEntity.ok("Consistencia corregida");
     }
 }

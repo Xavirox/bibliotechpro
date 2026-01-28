@@ -1,9 +1,7 @@
 package com.biblioteca.controller;
 
-import com.biblioteca.model.Libro;
-import com.biblioteca.repository.LibroRepository;
-import com.biblioteca.repository.PrestamoRepository;
-import com.biblioteca.repository.SocioRepository;
+import com.biblioteca.service.LibroService;
+import com.biblioteca.dto.LibroDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,13 +31,7 @@ class LibroControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private LibroRepository libroRepository;
-
-    @MockitoBean
-    private PrestamoRepository prestamoRepository;
-
-    @MockitoBean
-    private SocioRepository socioRepository;
+    private LibroService libroService;
 
     // Security beans required during context initialization
     @MockitoBean
@@ -54,23 +46,15 @@ class LibroControllerTest {
     @MockitoBean
     private com.biblioteca.config.JwtProperties jwtProperties;
 
-    private List<Libro> testLibros;
+    private List<LibroDTO> testLibros;
 
     @BeforeEach
     void setUp() {
-        Libro libro1 = new Libro();
-        libro1.setIdLibro(1L);
-        libro1.setTitulo("Don Quijote");
-        libro1.setAutor("Cervantes");
-        libro1.setIsbn("1234567890123");
-        libro1.setCategoria("Novela");
+        LibroDTO libro1 = new LibroDTO(
+                1L, "1234567890123", "Don Quijote", "Cervantes", "Novela", 1605, 5, true);
 
-        Libro libro2 = new Libro();
-        libro2.setIdLibro(2L);
-        libro2.setTitulo("1984");
-        libro2.setAutor("George Orwell");
-        libro2.setIsbn("9876543210123");
-        libro2.setCategoria("Ciencia Ficción");
+        LibroDTO libro2 = new LibroDTO(
+                2L, "9876543210123", "1984", "George Orwell", "Ciencia Ficción", 1949, 0, false);
 
         testLibros = Arrays.asList(libro1, libro2);
     }
@@ -78,7 +62,7 @@ class LibroControllerTest {
     @Test
     @DisplayName("Should return all books")
     void getAllLibros_ReturnsAllBooks() throws Exception {
-        when(libroRepository.findAll()).thenReturn(testLibros);
+        when(libroService.obtenerTodosLosLibros(null, null, null, null)).thenReturn(testLibros);
 
         mockMvc.perform(get("/api/libros")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -91,7 +75,7 @@ class LibroControllerTest {
     @Test
     @DisplayName("Should filter books by category")
     void getAllLibros_FilterByCategory() throws Exception {
-        when(libroRepository.findByCategoria("Novela"))
+        when(libroService.obtenerTodosLosLibros("Novela", null, null, null))
                 .thenReturn(List.of(testLibros.get(0)));
 
         mockMvc.perform(get("/api/libros")
@@ -105,7 +89,7 @@ class LibroControllerTest {
     @Test
     @DisplayName("Should return book by ID")
     void getLibroById_ReturnsBook() throws Exception {
-        when(libroRepository.findById(1L)).thenReturn(Optional.of(testLibros.get(0)));
+        when(libroService.obtenerLibroPorId(1L)).thenReturn(Optional.of(testLibros.get(0)));
 
         mockMvc.perform(get("/api/libros/1")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -117,7 +101,7 @@ class LibroControllerTest {
     @Test
     @DisplayName("Should return 404 when book not found")
     void getLibroById_NotFound() throws Exception {
-        when(libroRepository.findById(99L)).thenReturn(Optional.empty());
+        when(libroService.obtenerLibroPorId(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/libros/99")
                 .contentType(MediaType.APPLICATION_JSON))

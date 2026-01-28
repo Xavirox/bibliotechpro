@@ -145,51 +145,54 @@ biblioteca_web/
 
 ---
 
-## 🚀 Inicio Rápido
+## 🚀 Despliegue en Producción (VPS)
 
 ### Prerrequisitos
 
-- Java 17 o superior
-- Maven 3.8+
-- **Nginx** (recomendado) o Python 3 (fallback)
-- Oracle Database ejecutándose (puerto 1521)
-- Navegador moderno (Chrome, Firefox, Edge)
+- **Docker & Docker Compose** instalado en el servidor.
+- Puerto **9142** (HTTP) abierto en el firewall.
+- Conexión a internet para descarga de imágenes.
 
-> 💡 **¿Por qué Nginx?** A diferencia de `python -m http.server` (monohilo, sin caché ni compresión), Nginx es un servidor de producción que ofrece compresión Gzip, caché de assets, headers de seguridad y proxy reverso. El script detecta automáticamente cuál usar.
-
-### Instalación
+### 🛠️ Instalación y Despliegue
 
 1. **Configurar variables de entorno**
    
-   Editar `backend/.env` con tus credenciales:
-   ```
-   DB_USER=tu_usuario
-   DB_PASSWORD=tu_contraseña
-   DB_URL=jdbc:oracle:thin:@localhost:1521/XEPDB1
-   GEMINI_API_KEY=tu_api_key_gemini
-   ```
-
-2. **Iniciar la aplicación (un clic)**
+   Crea un archivo `.env` en la raíz del proyecto basándote en `.env.example`:
    ```bash
-   # Doble clic en:
-   abrir_proyecto.bat
+   cp .env.example .env
+   # Edita con tus credenciales reales (Oracle, Gemini, Telegram)
+   nano .env
    ```
-   
-   Esto inicia automáticamente el backend y el frontend.
 
-   **Alternativa: Docker Compose** 🐳
+2. **Compilar el Backend (Local o CI/CD)**
+   
+   Para optimizar recursos en el VPS, se recomienda compilar el JAR antes de enviarlo:
    ```bash
-   # Iniciar Nginx + Oracle DB en contenedores
-   docker-compose up -d
-   
-   # Luego iniciar el backend manualmente
-   cd backend && ./start.ps1
+   cd backend
+   mvn clean package -DskipTests
    ```
 
-3. **Acceder a la aplicación**
+3. **Iniciar la infraestructura completa**
+   
+   Ejecuta el orquestador desde la raíz:
+   ```bash
+   docker compose up -d --build
    ```
-   http://localhost:8000
-   ```
+
+   Esto levantará:
+   - **Nginx** (Puerto 9142): Frontend y Proxy Reverso.
+   - **Backend** (Puerto 9141): API REST de la biblioteca.
+   - **Oracle DB** (Puerto 9140): Base de datos persistente.
+   - **AI Service**: Motor de recomendaciones (Gemini).
+   - **Telegram Bot**: Interfaz conversacional.
+   - **n8n**: Automatización de notificaciones.
+
+### 🌍 Acceso a la Aplicación
+
+Una vez iniciados los contenedores:
+- **Frontend**: `http://tu-vps-ip:9142`
+- **Documentación API**: `http://tu-vps-ip:9141/swagger-ui.html`
+- **Dashboard n8n**: `http://tu-vps-ip:9144`
 
 ### Credenciales de Prueba
 

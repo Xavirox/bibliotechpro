@@ -55,7 +55,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/libros/**").permitAll() // Catalog is public
+                        .requestMatchers("/api/libros", "/api/libros/**").permitAll() // Catalog is public
                         // SEGURIDAD: Endpoint de usuarios para login - solo en desarrollo
                         // En producción, usar login con campo de texto
                         // SEGURIDAD: Endpoint de usuarios para login - solo en desarrollo

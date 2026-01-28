@@ -17,25 +17,25 @@ import java.util.stream.Collectors;
 @Tag(name = "Socios", description = "API para gestión de socios y perfiles")
 public class SocioController {
 
-    private final SocioService socioService;
+    private final SocioService servicioSocio;
 
-    public SocioController(SocioService socioService) {
-        this.socioService = socioService;
+    public SocioController(SocioService servicioSocio) {
+        this.servicioSocio = servicioSocio;
     }
 
     @GetMapping("/me")
     @Operation(summary = "Obtener mi perfil", description = "Retorna la información del socio autenticado")
-    public ResponseEntity<com.biblioteca.dto.SocioDTO> getMyProfile() {
+    public ResponseEntity<com.biblioteca.dto.SocioDTO> obtenerMiPerfil() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
+        String usuario = auth.getName();
 
-        return socioService.findByUsuario(username)
-                .map(this::convertToDTO)
+        return servicioSocio.buscarPorUsuario(usuario)
+                .map(this::convertirADTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    private com.biblioteca.dto.SocioDTO convertToDTO(com.biblioteca.model.Socio socio) {
+    private com.biblioteca.dto.SocioDTO convertirADTO(com.biblioteca.model.Socio socio) {
         return new com.biblioteca.dto.SocioDTO(
                 socio.getUsuario(),
                 socio.getNombre(),
@@ -50,8 +50,8 @@ public class SocioController {
      */
     @GetMapping("/public")
     @Operation(summary = "Listar socios (público)", description = "⚠️ SOLO DESARROLLO: Endpoint para facilitar el login en modo demo.")
-    public List<Map<String, String>> getAllSociosPublic() {
-        return socioService.getAllSocios().stream()
+    public List<Map<String, String>> listarSociosPublico() {
+        return servicioSocio.obtenerTodosLosSocios().stream()
                 .map(s -> Map.of(
                         "username", s.getUsuario(),
                         "nombre", s.getNombre() != null ? s.getNombre() : s.getUsuario()))
@@ -63,7 +63,7 @@ public class SocioController {
     public ResponseEntity<?> penalizarSocio(@PathVariable @org.springframework.lang.NonNull Long id,
             @RequestParam(defaultValue = "7") int dias) {
         try {
-            socioService.penalizarSocio(id, dias);
+            servicioSocio.penalizarSocio(id, dias);
             return ResponseEntity.ok("Socio penalizado correctamente por " + dias + " días");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

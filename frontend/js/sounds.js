@@ -233,39 +233,7 @@ export function initSoundEffects() {
     // Inicializar audio en primer click (requerido por navegadores)
     document.addEventListener('click', () => initAudio(), { once: true });
 
-    // Inyectar CSS de animaciones si no existe
-    if (!document.getElementById('sound-effects-styles')) {
-        const style = document.createElement('style');
-        style.id = 'sound-effects-styles';
-        style.textContent = `
-            @keyframes visual-pulse {
-                0% {
-                    transform: translate(-50%, -50%) scale(0);
-                    opacity: 0.5;
-                }
-                100% {
-                    transform: translate(-50%, -50%) scale(3);
-                    opacity: 0;
-                }
-            }
-            
-            @keyframes ripple-expand {
-                0% {
-                    transform: translate(-50%, -50%) scale(0);
-                    opacity: 1;
-                }
-                100% {
-                    transform: translate(-50%, -50%) scale(4);
-                    opacity: 0;
-                }
-            }
-            
-            .btn:active {
-                transform: scale(0.98);
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    // CSS de animaciones movido a visuals.css para limpieza y separación de intereses.
 
     // Añadir ripple a todos los botones
     document.querySelectorAll('.btn').forEach(btn => {

@@ -53,3 +53,24 @@ export const USER_ROLES = {
     BIBLIOTECARIO: "BIBLIOTECARIO",
     ADMIN: "ADMIN"
 };
+
+/**
+ * Emojis asociados a cada categoría literaria.
+ * Usado para badges y UI visual.
+ */
+export const CATEGORY_EMOJIS = {
+    'Novela': '📖',
+    'Ciencia Ficción': '🚀',
+    'Fantasía': '🐉',
+    'Biografía': '👤',
+    'Historia': '🏛️',
+    'Tecnología': '💻',
+    'Terror': '👻',
+    'Romance': '💕',
+    'Aventura': '🗺️',
+    'Misterio': '🔍',
+    'Infantil': '🧸',
+    'Arte': '🎨',
+    'Cocina': '🍳',
+    'Poesía': '✒️'
+};

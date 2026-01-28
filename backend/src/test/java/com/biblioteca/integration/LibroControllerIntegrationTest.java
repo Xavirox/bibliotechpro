@@ -86,12 +86,12 @@ class LibroControllerIntegrationTest {
     @Test
     @DisplayName("Should get all books without authentication")
     void getAllLibros_Success() {
-        ResponseEntity<List<?>> response = restTemplate.exchange(
-                baseUrl, HttpMethod.GET, null, new ParameterizedTypeReference<List<?>>() {
+        ResponseEntity<List<com.biblioteca.dto.LibroDTO>> response = restTemplate.exchange(
+                baseUrl, HttpMethod.GET, null, new ParameterizedTypeReference<List<com.biblioteca.dto.LibroDTO>>() {
                 });
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        List<?> body = response.getBody();
+        List<com.biblioteca.dto.LibroDTO> body = response.getBody();
         assertNotNull(body);
         assertEquals(3, body.size());
     }
@@ -99,8 +99,9 @@ class LibroControllerIntegrationTest {
     @Test
     @DisplayName("Should filter books by category")
     void getAllLibros_FilterByCategory() {
-        ResponseEntity<List<?>> response = restTemplate.exchange(
-                baseUrl + "?categoria=Clásicos", HttpMethod.GET, null, new ParameterizedTypeReference<List<?>>() {
+        ResponseEntity<List<com.biblioteca.dto.LibroDTO>> response = restTemplate.exchange(
+                baseUrl + "?categoria=Clásicos", HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<com.biblioteca.dto.LibroDTO>>() {
                 });
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -113,7 +114,7 @@ class LibroControllerIntegrationTest {
     @DisplayName("Should get paginated books")
     void getLibrosPaginated_Success() {
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                baseUrl + "/paginated?page=0&size=2",
+                baseUrl + "/paginated?pagina=0&tamanio=2",
                 HttpMethod.GET,
                 null,
                 new ParameterizedTypeReference<Map<String, Object>>() {
@@ -138,7 +139,7 @@ class LibroControllerIntegrationTest {
     @DisplayName("Should search books by title or author")
     void getLibrosPaginated_WithSearch() {
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                baseUrl + "/paginated?search=Cervantes",
+                baseUrl + "/paginated?busqueda=Cervantes",
                 HttpMethod.GET,
                 null,
                 new ParameterizedTypeReference<Map<String, Object>>() {
@@ -158,12 +159,12 @@ class LibroControllerIntegrationTest {
         // Get first book's ID
         Libro libro = libroRepository.findAll().get(0);
 
-        ResponseEntity<Libro> response = restTemplate.getForEntity(
-                baseUrl + "/" + libro.getIdLibro(), Libro.class);
+        ResponseEntity<com.biblioteca.dto.LibroDTO> response = restTemplate.getForEntity(
+                baseUrl + "/" + libro.getIdLibro(), com.biblioteca.dto.LibroDTO.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        Libro responseBody = Objects.requireNonNull(response.getBody());
-        assertEquals(libro.getTitulo(), responseBody.getTitulo());
+        com.biblioteca.dto.LibroDTO responseBody = Objects.requireNonNull(response.getBody());
+        assertEquals(libro.getTitulo(), responseBody.titulo());
     }
 
     @Test

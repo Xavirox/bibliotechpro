@@ -1,23 +1,6 @@
 
 package com.biblioteca.service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
 import com.biblioteca.dto.RecomendacionDTO;
 import com.biblioteca.model.Libro;
 import com.biblioteca.model.Prestamo;
@@ -27,59 +10,71 @@ import com.biblioteca.repository.PrestamoRepository;
 import com.biblioteca.repository.SocioRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class GeminiService {
 
-    private static final Logger logger = LoggerFactory.getLogger(GeminiService.class);
-    private static final String DEFAULT_AI_URL = "http://ai-service:8000/api/recommend";
+    private static final Logger LOG = LoggerFactory.getLogger(GeminiService.class);
+    private static final String DEFAULT_AI_URL = "http://ai-service:8000/api/recomendar";
 
-    private final PrestamoRepository prestamoRepository;
-    private final LibroRepository libroRepository;
-    private final SocioRepository socioRepository;
+    private final PrestamoRepository repositorioPrestamo;
+    private final LibroRepository repositorioLibro;
+    private final SocioRepository repositorioSocio;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${ai.service.url:" + DEFAULT_AI_URL + "}")
-    private String aiServiceUrl;
+    private String urlServicioIA;
 
-    public GeminiService(PrestamoRepository prestamoRepository,
-            LibroRepository libroRepository,
-            SocioRepository socioRepository,
+    public GeminiService(PrestamoRepository repositorioPrestamo,
+            LibroRepository repositorioLibro,
+            SocioRepository repositorioSocio,
             ObjectMapper objectMapper) {
-        this.prestamoRepository = prestamoRepository;
-        this.libroRepository = libroRepository;
-        this.socioRepository = socioRepository;
+        this.repositorioPrestamo = repositorioPrestamo;
+        this.repositorioLibro = repositorioLibro;
+        this.repositorioSocio = repositorioSocio;
         this.objectMapper = objectMapper;
 
-        // Configuración de timeouts directamente en el RestTemplate para evitar leaks
-        org.springframework.http.client.SimpleClientHttpRequestFactory factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(2000); // 2s conexión
-        factory.setReadTimeout(8000); // 8s lectura (Gemini puede tardar)
-        this.restTemplate = new RestTemplate(factory);
+        SimpleClientHttpRequestFactory fabricaSolicitudes = new SimpleClientHttpRequestFactory();
+        fabricaSolicitudes.setConnectTimeout(2000); // 2 segundos
+        fabricaSolicitudes.setReadTimeout(8000); // 8 segundos (La IA puede tardar)
+        this.restTemplate = new RestTemplate(fabricaSolicitudes);
     }
 
     /**
-     * Obtiene recomendaciones para un usuario por su nombre de usuario.
-     * Garantiza que NUNCA lanza excepción hacia el controlador.
+     * Obtiene recomendaciones personalizadas para un usuario.
+     * Si el servicio de IA falla, retorna recomendaciones basadas en reglas
+     * locales.
      */
-    public List<RecomendacionDTO> getRecomendacionesForUser(String username) {
+    public List<RecomendacionDTO> obtenerRecomendacionesPorUsuario(String usuario) {
         try {
-            Socio socio = socioRepository.findByUsuario(username)
-                    .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + username));
-            return getRecomendaciones(socio.getIdSocio());
+            Socio socio = repositorioSocio.findByUsuario(usuario)
+                    .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado: " + usuario));
+            return obtenerRecomendaciones(socio.getIdSocio());
         } catch (Exception e) {
-            logger.error("Error crítico obteniendo recomendaciones para {}: {}", username, e.getMessage());
-            return getFallbackRecommendations(Collections.emptyList());
+            LOG.error("Error crítico obteniendo recomendaciones para {}. Usando fallback.", usuario, e);
+            return obtenerRecomendacionesLocales(Collections.emptyList());
         }
     }
 
-    public List<RecomendacionDTO> getRecomendaciones(Long idSocio) {
-        List<Prestamo> prestamos = prestamoRepository.findBySocioIdSocioWithDetails(idSocio);
+    public List<RecomendacionDTO> obtenerRecomendaciones(Long idSocio) {
+        List<Prestamo> prestamos = repositorioPrestamo.findBySocioIdSocioWithDetails(idSocio);
 
         try {
-            // Preparar datos para la IA
-            List<Map<String, String>> history = prestamos.stream()
+            List<Map<String, String>> historial = prestamos.stream()
                     .map(p -> {
                         Libro l = p.getEjemplar().getLibro();
                         return Map.of(
@@ -90,92 +85,90 @@ public class GeminiService {
                     .distinct()
                     .collect(Collectors.toList());
 
-            List<Libro> randomLibros = libroRepository.findRandomBooks(30);
-            List<Map<String, String>> catalog = randomLibros.stream()
+            List<Libro> librosAleatorios = repositorioLibro.findRandomBooks(30);
+            List<Map<String, String>> catalogo = librosAleatorios.stream()
                     .map(l -> Map.of(
                             "titulo", l.getTitulo() != null ? l.getTitulo() : "Desconocido",
                             "categoria", l.getCategoria() != null ? l.getCategoria() : "General",
                             "autor", l.getAutor() != null ? l.getAutor() : "Anónimo"))
                     .collect(Collectors.toList());
 
-            // Llamada al microservicio de IA
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpHeaders cabeceras = new HttpHeaders();
+            cabeceras.setContentType(MediaType.APPLICATION_JSON);
 
-            Map<String, Object> body = Map.of(
-                    "history", history,
-                    "catalog", catalog,
-                    "user_id", String.valueOf(idSocio));
+            // Actualizado a claves en español para coincidir con el servicio Python
+            Map<String, Object> cuerpoPeticion = Map.of(
+                    "historial", historial,
+                    "catalogo", catalogo,
+                    "id_usuario", String.valueOf(idSocio));
 
-            java.util.Objects.requireNonNull(aiServiceUrl, "AI Service URL no configurada");
-            ResponseEntity<String> response = restTemplate.postForEntity(aiServiceUrl, new HttpEntity<>(body, headers),
+            Objects.requireNonNull(urlServicioIA, "La URL del servicio de IA no está configurada");
+
+            ResponseEntity<String> respuesta = restTemplate.postForEntity(
+                    urlServicioIA,
+                    new HttpEntity<>(cuerpoPeticion, cabeceras),
                     String.class);
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                List<RecomendacionDTO> aiRecs = parseAiResponse(response.getBody());
-                if (aiRecs != null && !aiRecs.isEmpty()) {
-                    return aiRecs;
+            if (respuesta.getStatusCode().is2xxSuccessful() && respuesta.getBody() != null) {
+                List<RecomendacionDTO> recomendacionesIA = procesarRespuestaIA(respuesta.getBody());
+                if (recomendacionesIA != null && !recomendacionesIA.isEmpty()) {
+                    return recomendacionesIA;
                 }
             }
 
         } catch (Exception e) {
-            logger.warn("IA no disponible o error en comunicación ({}). Usando fallback algorítmico.", e.getMessage());
+            LOG.warn("Servicio de IA no disponible ({}). Cambiando a algoritmo local.", e.getMessage());
         }
 
-        return getFallbackRecommendations(prestamos);
+        return obtenerRecomendacionesLocales(prestamos);
     }
 
-    /**
-     * Parsea la respuesta del microservicio de IA asegurando el formato esperado.
-     */
-    private List<RecomendacionDTO> parseAiResponse(String json) {
+    private List<RecomendacionDTO> procesarRespuestaIA(String json) {
         try {
-            JsonNode root = objectMapper.readTree(json);
-            JsonNode recs = root.path("recomendaciones");
+            JsonNode raiz = objectMapper.readTree(json);
+            JsonNode nodoRecomendaciones = raiz.path("recomendaciones");
 
-            List<RecomendacionDTO> result = new ArrayList<>();
-            if (recs.isArray()) {
-                for (JsonNode node : recs) {
-                    result.add(new RecomendacionDTO(
-                            node.path("titulo").asText("Sin título"),
-                            node.path("motivo").asText("Basado en tus gustos.")));
+            List<RecomendacionDTO> resultado = new ArrayList<>();
+            if (nodoRecomendaciones.isArray()) {
+                for (JsonNode nodo : nodoRecomendaciones) {
+                    resultado.add(new RecomendacionDTO(
+                            nodo.path("titulo").asText("Sin título"),
+                            nodo.path("motivo").asText("Basado en tus preferencias.")));
                 }
             }
-            return result;
+            return resultado;
         } catch (Exception e) {
-            logger.error("Error parseando respuesta de IA: {}", e.getMessage());
+            LOG.error("Error procesando respuesta JSON de la IA: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
 
     /**
-     * Fallback algorítmico LOCAL. Se activa si:
-     * 1. El microservicio de IA está caído.
-     * 2. No hay API Key configurada.
-     * 3. Se ha superado la cuota de Gemini.
+     * Algoritmo de respaldo (Safety Fallback) ejecutado localmente cuando la IA no
+     * responde.
      */
-    private List<RecomendacionDTO> getFallbackRecommendations(List<Prestamo> prestamos) {
-        logger.info("Generando recomendaciones locales (Safety Fallback)");
+    private List<RecomendacionDTO> obtenerRecomendacionesLocales(List<Prestamo> prestamos) {
+        LOG.info("Generando recomendaciones locales (Fallback)");
 
-        Set<String> catFavoritas = prestamos.stream()
+        Set<String> categoriasFavoritas = prestamos.stream()
                 .map(p -> p.getEjemplar().getLibro().getCategoria())
                 .collect(Collectors.toSet());
 
-        Set<Long> leidosIds = prestamos.stream()
+        Set<Long> idsLeidos = prestamos.stream()
                 .map(p -> p.getEjemplar().getLibro().getIdLibro())
                 .collect(Collectors.toSet());
 
-        List<Libro> todos = libroRepository.findAll();
-        Collections.shuffle(todos);
+        List<Libro> todosLosLibros = repositorioLibro.findAll();
+        Collections.shuffle(todosLosLibros);
 
-        return todos.stream()
-                .filter(l -> !leidosIds.contains(l.getIdLibro()))
+        return todosLosLibros.stream()
+                .filter(l -> !idsLeidos.contains(l.getIdLibro()))
                 .limit(3)
                 .map(l -> {
-                    String razon = catFavoritas.contains(l.getCategoria())
-                            ? "Como te gusta " + l.getCategoria() + ", creemos que este libro te encantará."
-                            : "Una sugerencia especial de nuestra biblioteca para ti.";
-                    return new RecomendacionDTO(l.getTitulo(), razon);
+                    String motivo = categoriasFavoritas.contains(l.getCategoria())
+                            ? "Te gustó " + l.getCategoria() + ", creemos que disfrutarás este título."
+                            : "Sugerencia destacada de nuestra colección.";
+                    return new RecomendacionDTO(l.getTitulo(), motivo);
                 })
                 .collect(Collectors.toList());
     }

@@ -78,9 +78,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should login successfully with valid credentials")
         void login_Success() throws Exception {
-                LoginRequest loginRequest = new LoginRequest();
-                loginRequest.setUsername("testuser");
-                loginRequest.setPassword("password123");
+                LoginRequest loginRequest = new LoginRequest("testuser", "password123");
 
                 User userDetails = new User("testuser", "password",
                                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_SOCIO")));
@@ -108,9 +106,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return 401 with invalid credentials")
         void login_BadCredentials() throws Exception {
-                LoginRequest loginRequest = new LoginRequest();
-                loginRequest.setUsername("testuser");
-                loginRequest.setPassword("wrongpassword");
+                LoginRequest loginRequest = new LoginRequest("testuser", "wrongpassword");
 
                 when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                                 .thenThrow(new BadCredentialsException("Bad credentials"));
@@ -124,9 +120,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return 400 with empty username")
         void login_EmptyUsername() throws Exception {
-                LoginRequest loginRequest = new LoginRequest();
-                loginRequest.setUsername("");
-                loginRequest.setPassword("password123");
+                LoginRequest loginRequest = new LoginRequest("", "password123");
 
                 mockMvc.perform(post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -137,9 +131,7 @@ class AuthControllerTest {
         @Test
         @DisplayName("Should return 400 with empty password")
         void login_EmptyPassword() throws Exception {
-                LoginRequest loginRequest = new LoginRequest();
-                loginRequest.setUsername("testuser");
-                loginRequest.setPassword("");
+                LoginRequest loginRequest = new LoginRequest("testuser", "");
 
                 mockMvc.perform(post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)

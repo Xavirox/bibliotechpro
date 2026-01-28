@@ -1,5 +1,6 @@
 package com.biblioteca.repository;
 
+import com.biblioteca.model.EstadoEjemplar;
 import com.biblioteca.model.Ejemplar;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
@@ -9,12 +10,13 @@ public interface EjemplarRepository extends JpaRepository<Ejemplar, Long> {
     List<Ejemplar> findByLibroIdLibroWithLibro(
             @org.springframework.data.repository.query.Param("idLibro") Long idLibro);
 
-    List<Ejemplar> findByEstado(String estado);
+    List<Ejemplar> findByEstado(EstadoEjemplar estado);
 
     @org.springframework.data.jpa.repository.Query("SELECT e FROM Ejemplar e JOIN FETCH e.libro WHERE e.estado = :estado")
-    List<Ejemplar> findByEstadoWithLibro(@org.springframework.data.repository.query.Param("estado") String estado);
+    List<Ejemplar> findByEstadoWithLibro(
+            @org.springframework.data.repository.query.Param("estado") EstadoEjemplar estado);
 
-    long countByLibroIdLibroAndEstado(Long idLibro, String estado);
+    long countByLibroIdLibroAndEstado(Long idLibro, EstadoEjemplar estado);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query(value = "UPDATE EJEMPLAR SET ESTADO = 'DISPONIBLE' WHERE ESTADO = 'PRESTADO' AND ID_EJEMPLAR NOT IN (SELECT ID_EJEMPLAR FROM PRESTAMO WHERE ESTADO = 'ACTIVO')", nativeQuery = true)

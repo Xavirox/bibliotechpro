@@ -19,31 +19,29 @@ import java.util.Objects;
 @Tag(name = "Préstamos", description = "API para gestión de préstamos de libros")
 public class PrestamoController {
 
-    private final PrestamoService prestamoService;
+    private final PrestamoService servicioPrestamo;
 
-    public PrestamoController(PrestamoService prestamoService) {
-        this.prestamoService = prestamoService;
+    public PrestamoController(PrestamoService servicioPrestamo) {
+        this.servicioPrestamo = servicioPrestamo;
     }
 
     @PostMapping
     @Operation(summary = "Crear préstamo", description = "Crea un nuevo préstamo para un socio (solo bibliotecarios)")
-    public ResponseEntity<?> crearPrestamo(@Valid @RequestBody PrestamoRequest request) {
+    public ResponseEntity<?> crearPrestamo(@Valid @RequestBody PrestamoRequest solicitud) {
         // Validaciones explícitas para devolver 400 en lugar de 500
-        if (request.getIdSocio() == null) {
+        if (solicitud.getIdSocio() == null) {
             return ResponseEntity.badRequest().body("El campo 'idSocio' es obligatorio");
         }
-        if (request.getIdEjemplar() == null) {
+        if (solicitud.getIdEjemplar() == null) {
             return ResponseEntity.badRequest().body("El campo 'idEjemplar' es obligatorio");
         }
 
         try {
-            Prestamo prestamo = prestamoService.crearPrestamo(
-                    Objects.requireNonNull(request.getIdSocio()),
-                    Objects.requireNonNull(request.getIdEjemplar()));
+            Prestamo prestamo = servicioPrestamo.crearPrestamo(
+                    Objects.requireNonNull(solicitud.getIdSocio()),
+                    Objects.requireNonNull(solicitud.getIdEjemplar()));
             return ResponseEntity.ok(prestamo);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (IllegalStateException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -58,16 +56,14 @@ public class PrestamoController {
         try {
             // SEGURIDAD: Verificar que el usuario puede devolver este préstamo
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String username = auth.getName();
+            String usuario = auth.getName();
             boolean esBibliotecario = auth.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_BIBLIOTECARIO")
                             || a.getAuthority().equals("ROLE_ADMIN"));
 
-            prestamoService.devolverPrestamo(id, username, esBibliotecario);
+            servicioPrestamo.devolverPrestamo(id, usuario, esBibliotecario);
             return ResponseEntity.ok("Préstamo devuelto correctamente");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (IllegalStateException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(e.getMessage());
@@ -76,18 +72,18 @@ public class PrestamoController {
 
     @GetMapping
     @Operation(summary = "Listar préstamos", description = "Obtiene todos los préstamos, opcionalmente filtrados por estado")
-    public List<com.biblioteca.dto.PrestamoDTO> getAllPrestamos(@RequestParam(required = false) String estado) {
-        return prestamoService.getAllPrestamos(estado).stream()
+    public List<com.biblioteca.dto.PrestamoDTO> listarPrestamos(@RequestParam(required = false) String estado) {
+        return servicioPrestamo.obtenerTodosLosPrestamos(estado).stream()
                 .map(com.biblioteca.dto.PrestamoDTO::fromEntity)
                 .toList();
     }
 
     @GetMapping("/mis-prestamos")
     @Operation(summary = "Mis préstamos", description = "Obtiene los préstamos del usuario autenticado")
-    public List<com.biblioteca.dto.PrestamoDTO> getMisPrestamos() {
+    public List<com.biblioteca.dto.PrestamoDTO> listarMisPrestamos() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-        return prestamoService.getMisPrestamos(username).stream()
+        String usuario = auth.getName();
+        return servicioPrestamo.obtenerPrestamosDeUsuario(usuario).stream()
                 .map(com.biblioteca.dto.PrestamoDTO::fromEntity)
                 .toList();
     }

@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 import os
 from google import genai
@@ -8,71 +8,71 @@ from dotenv import load_dotenv
 import logging
 import json
 
-# Load environment variables
+# Cargar variables de entorno
 load_dotenv()
 
-# Configure Logging
+# Configurar Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI
+# Inicializar FastAPI
 app = FastAPI(
-    title="BiblioTech AI Service",
-    description="Microservice for OCR and AI Recommendations using Gemini",
+    title="Servicio de IA BiblioTech",
+    description="Microservicio para OCR y Recomendaciones usando Gemini",
     version="1.0.0"
 )
 
-# Configure Gemini Client
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-client = None
+# Configurar Cliente Gemini
+CLAVE_API_GEMINI = os.getenv("GEMINI_API_KEY")
+cliente_ia = None
 
-if not GEMINI_API_KEY:
-    logger.warning("GEMINI_API_KEY not set. AI features will fail.")
+if not CLAVE_API_GEMINI:
+    logger.warning("GEMINI_API_KEY no establecida. Las funciones de IA fallarán.")
 else:
     try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
+        cliente_ia = genai.Client(api_key=CLAVE_API_GEMINI)
     except Exception as e:
-         logger.error(f"Failed to initialize Gemini Client: {e}")
+         logger.error(f"Error al inicializar cliente Gemini: {e}")
 
-# --- Models ---
+# --- Modelos ---
 
-class BookInfo(BaseModel):
+class InformacionLibro(BaseModel):
     titulo: str
     autor: str
     categoria: str
 
-class RecommendationRequest(BaseModel):
-    history: List[BookInfo]
-    catalog: List[BookInfo]
-    user_id: Optional[str] = None
+class SolicitudRecomendacion(BaseModel):
+    historial: List[InformacionLibro]
+    catalogo: List[InformacionLibro]
+    id_usuario: Optional[str] = None
 
-class BookRecommendation(BaseModel):
+class RecomendacionLibro(BaseModel):
     titulo: str
     autor: str
     categoria: str
     motivo: str
 
-class RecommendationResponse(BaseModel):
-    recomendaciones: List[BookRecommendation]
+class RespuestaRecomendacion(BaseModel):
+    recomendaciones: List[RecomendacionLibro]
 
-# --- Routes ---
+# --- Rutas ---
 
 @app.get("/health")
-async def health_check():
-    return {"status": "ok", "service": "ai-service"}
+async def verificar_salud():
+    return {"estado": "ok", "servicio": "servicio-ia"}
 
-@app.post("/api/recommend", response_model=RecommendationResponse)
-async def get_recommendations(request: RecommendationRequest):
+@app.post("/api/recomendar", response_model=RespuestaRecomendacion)
+async def obtener_recomendaciones(solicitud: SolicitudRecomendacion):
     """
-    Generates book recommendations using Gemini with the specialized librarian prompt.
+    Genera recomendaciones de libros usando Gemini con un prompt de bibliotecario especializado.
     """
     try:
-        if not client:
-             raise HTTPException(status_code=503, detail="AI Service unavailable (Missing Config)")
+        if not cliente_ia:
+             raise HTTPException(status_code=503, detail="Servicio de IA no disponible (Falta Configuración)")
 
-        # Serialize input to JSON for the prompt
-        history_json = json.dumps([b.dict() for b in request.history], ensure_ascii=False)
-        catalog_json = json.dumps([b.dict() for b in request.catalog], ensure_ascii=False)
+        # Serializar entrada a JSON para el prompt
+        historial_json = json.dumps([l.dict() for l in solicitud.historial], ensure_ascii=False)
+        catalogo_json = json.dumps([l.dict() for l in solicitud.catalogo], ensure_ascii=False)
         
         prompt = f"""
 Eres un bibliotecario experto con décadas de experiencia curando lecturas personalizadas. Tu objetivo es recomendar la próxima lectura ideal basándote SOLO en los patrones de lectura previos y el catálogo disponible.
@@ -101,37 +101,36 @@ FORMATO DE RESPUESTA (JSON Schema):
 }}
 
 [HISTORIAL_DE_LECTURA]:
-{history_json}
+{historial_json}
 
 [CATALOGO_DISPONIBLE]:
-{catalog_json}
+{catalogo_json}
         """
         
-        # Configure generation config for JSON response
-        config = types.GenerateContentConfig(
+        # Configurar generación para respuesta JSON
+        configuracion = types.GenerateContentConfig(
             temperature=0.3,
             response_mime_type="application/json",
-            response_schema=RecommendationResponse
+            response_schema=RespuestaRecomendacion
         )
 
-        response = client.models.generate_content(
+        respuesta = cliente_ia.models.generate_content(
             model='gemini-2.0-flash',
             contents=prompt,
-            config=config
+            config=configuracion
         )
         
-        # Parse response
+        # Parsear respuesta
         try:
-             # The SDK with response_mime_type='application/json' should return parsed object or valid json string
-             recommendations = json.loads(response.text)
-             return recommendations
+             recomendaciones = json.loads(respuesta.text)
+             return recomendaciones
         except json.JSONDecodeError:
-             logger.error(f"Failed to parse JSON from Gemini: {response.text}")
-             raise HTTPException(status_code=500, detail="AI returned invalid format")
+             logger.error(f"Error al parsear JSON de Gemini: {respuesta.text}")
+             raise HTTPException(status_code=500, detail="IA devolvió un formato inválido")
 
     except Exception as e:
-        logger.error(f"Error generating recommendations: {e}")
-        raise HTTPException(status_code=500, detail=f"AI Processing Failed: {str(e)}")
+        logger.error(f"Error generando recomendaciones: {e}")
+        raise HTTPException(status_code=500, detail=f"Fallo en Procesamiento de IA: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

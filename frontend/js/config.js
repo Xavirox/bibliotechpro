@@ -16,15 +16,6 @@
  * - Si estamos en cualquier otro host (VPS), asumimos puerto 9141 (según docker-compose-vps.yml)
  */
 const getApiUrl = () => {
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-
-    // Si estamos corriendo localmente (desarrollo)
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return `${protocol}//${hostname}:9091/api`;
-    }
-
-    // En producción (VPS), usamos la ruta relativa /api gestionada por Nginx
     return '/api';
 };
 

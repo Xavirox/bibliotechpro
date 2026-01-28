@@ -2,6 +2,8 @@ package com.biblioteca.controller;
 
 import com.biblioteca.dto.RecomendacionDTO;
 import com.biblioteca.service.GeminiService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -13,25 +15,25 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/recomendaciones")
+@Tag(name = "Recomendaciones AI", description = "API para obtener recomendaciones personalizadas de lectura")
 public class RecomendacionController {
 
-    private static final Logger logger = LoggerFactory.getLogger(RecomendacionController.class);
-    private final GeminiService geminiService;
+    private static final Logger LOG = LoggerFactory.getLogger(RecomendacionController.class);
+    private final GeminiService servicioIA;
 
-    public RecomendacionController(GeminiService geminiService) {
-        this.geminiService = geminiService;
+    public RecomendacionController(GeminiService servicioIA) {
+        this.servicioIA = servicioIA;
     }
 
     @GetMapping("/mias")
-    public ResponseEntity<List<RecomendacionDTO>> getMisRecomendaciones() {
+    @Operation(summary = "Obtener mis recomendaciones", description = "Obtiene recomendaciones basadas en el historial de lectura del usuario (IA o Fallback)")
+    public ResponseEntity<List<RecomendacionDTO>> obtenerMisRecomendaciones() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
+        String usuario = auth.getName();
 
-        logger.info("Solicitando recomendaciones para usuario: {}", username);
+        LOG.info("Solicitando recomendaciones para usuario: {}", usuario);
 
-        // El servicio ya garantiza que nunca lanza excepción y devuelve fallback si
-        // falla la IA
-        List<RecomendacionDTO> result = geminiService.getRecomendacionesForUser(username);
-        return ResponseEntity.ok(result);
+        List<RecomendacionDTO> resultado = servicioIA.obtenerRecomendacionesPorUsuario(usuario);
+        return ResponseEntity.ok(resultado);
     }
 }

@@ -18,14 +18,14 @@ public record PrestamoDTO(
         Date now = new Date();
         long diff = p.getFechaPrevistaDevolucion().getTime() - now.getTime();
         long days = (long) Math.ceil(diff / (1000.0 * 60 * 60 * 24));
-        boolean vencido = days < 0 && "ACTIVO".equals(p.getEstado());
+        boolean vencido = days < 0 && com.biblioteca.model.EstadoPrestamo.ACTIVO == p.getEstado();
 
         String badge = "badge-success";
         if (vencido)
             badge = "badge-danger";
-        else if (days < 3 && "ACTIVO".equals(p.getEstado()))
+        else if (days < 3 && com.biblioteca.model.EstadoPrestamo.ACTIVO == p.getEstado())
             badge = "badge-warning";
-        else if ("DEVUELTO".equals(p.getEstado()))
+        else if (com.biblioteca.model.EstadoPrestamo.DEVUELTO == p.getEstado())
             badge = "badge-info";
 
         return new PrestamoDTO(
@@ -35,7 +35,7 @@ public record PrestamoDTO(
                 p.getFechaPrestamo(),
                 p.getFechaPrevistaDevolucion(),
                 p.getFechaDevolucionReal(),
-                p.getEstado(),
+                p.getEstado().name(),
                 vencido,
                 days,
                 badge);

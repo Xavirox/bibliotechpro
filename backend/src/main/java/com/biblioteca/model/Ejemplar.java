@@ -21,7 +21,8 @@ public class Ejemplar {
     private String codigoBarras;
 
     @Column(name = "ESTADO", nullable = false)
-    private String estado; // DISPONIBLE, BLOQUEADO, PRESTADO, BAJA
+    @Enumerated(EnumType.STRING)
+    private EstadoEjemplar estado; // DISPONIBLE, BLOQUEADO, PRESTADO, BAJA
 
     @Column(name = "UBICACION")
     private String ubicacion;
@@ -54,11 +55,11 @@ public class Ejemplar {
         this.codigoBarras = codigoBarras;
     }
 
-    public String getEstado() {
+    public EstadoEjemplar getEstado() {
         return estado;
     }
 
-    public void setEstado(String estado) {
+    public void setEstado(EstadoEjemplar estado) {
         this.estado = estado;
     }
 

@@ -15,88 +15,84 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Service
+@lombok.RequiredArgsConstructor
 public class WebhookService {
 
-    private static final Logger log = LoggerFactory.getLogger(WebhookService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WebhookService.class);
 
     @Value("${n8n.webhook.base-url:http://n8n:5678/webhook/}")
-    private String n8nBaseUrl;
+    private String urlBaseN8n;
 
     private static final String ENDPOINT_DEVOLUCION_TARDE = "webhook-devolucion-tarde-v3";
     private static final String ENDPOINT_NUEVA_RESERVA = "webhook-nueva-reserva-v3";
     private static final String ENDPOINT_NUEVO_PRESTAMO = "webhook-nuevo-prestamo-v3";
 
     private final ObjectMapper objectMapper;
-    private final HttpClient httpClient;
+    private final HttpClient clienteHttp = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
 
-    public WebhookService(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(5))
-                .build();
-    }
-
-    public void notificarDevolucionTardia(Map<String, Object> payload) {
-        enviarAWebhook(payload, buildUrl(ENDPOINT_DEVOLUCION_TARDE));
+    public void notificarDevolucionTardia(Map<String, Object> datos) {
+        enviarAWebhook(datos, construirUrl(ENDPOINT_DEVOLUCION_TARDE));
     }
 
     public void notificarNuevaReserva(String usuario, String tituloLibro) {
-        Map<String, Object> payload = Map.of(
+        Map<String, Object> datos = Map.of(
                 "tipo", "RESERVA",
                 "usuario", usuario,
                 "libro", tituloLibro,
                 "timestamp", System.currentTimeMillis());
-        enviarAWebhook(payload, buildUrl(ENDPOINT_NUEVA_RESERVA));
+        enviarAWebhook(datos, construirUrl(ENDPOINT_NUEVA_RESERVA));
     }
 
     public void notificarNuevoPrestamo(String usuario, String tituloLibro) {
-        Map<String, Object> payload = Map.of(
+        Map<String, Object> datos = Map.of(
                 "tipo", "PRESTAMO",
                 "usuario", usuario,
                 "libro", tituloLibro,
                 "timestamp", System.currentTimeMillis());
-        enviarAWebhook(payload, buildUrl(ENDPOINT_NUEVO_PRESTAMO));
+        enviarAWebhook(datos, construirUrl(ENDPOINT_NUEVO_PRESTAMO));
     }
 
-    private String buildUrl(String endpoint) {
-        String base = n8nBaseUrl.endsWith("/") ? n8nBaseUrl : n8nBaseUrl + "/";
+    private String construirUrl(String endpoint) {
+        String base = urlBaseN8n.endsWith("/") ? urlBaseN8n : urlBaseN8n + "/";
         return base + endpoint;
     }
 
-    private void enviarAWebhook(Map<String, Object> payload, String targetUrl) {
+    private void enviarAWebhook(Map<String, Object> datos, String urlDestino) {
         CompletableFuture.runAsync(() -> {
             try {
-                if (payload != null && payload.size() > 50) {
-                    log.warn("Payload de webhook demasiado grande. Rechazado.");
+                if (datos != null && datos.size() > 50) {
+                    LOG.warn("Payload de webhook demasiado grande. Rechazado.");
                     return;
                 }
 
-                String jsonBody = objectMapper.writeValueAsString(payload);
-                log.info("Enviando webhook a n8n: {}", targetUrl);
+                String cuerpoJson = objectMapper.writeValueAsString(datos);
+                LOG.info("Enviando webhook a n8n: {}", urlDestino);
 
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(targetUrl))
+                HttpRequest solicitud = HttpRequest.newBuilder()
+                        .uri(URI.create(urlDestino))
                         .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .POST(HttpRequest.BodyPublishers.ofString(cuerpoJson))
                         .build();
 
-                httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                        .thenAccept(response -> {
-                            if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                                log.info("Webhook enviado correctamente a {}. Código: {}", targetUrl,
-                                        response.statusCode());
+                clienteHttp.sendAsync(solicitud, HttpResponse.BodyHandlers.ofString())
+                        .thenAccept(respuesta -> {
+                            if (respuesta.statusCode() >= 200 && respuesta.statusCode() < 300) {
+                                LOG.info("Webhook enviado correctamente a {}. Código: {}", urlDestino,
+                                        respuesta.statusCode());
                             } else {
-                                log.warn("n8n respondió con error en {}: {} - {}", targetUrl, response.statusCode(),
-                                        response.body());
+                                LOG.warn("n8n respondió con error en {}: {} - {}", urlDestino, respuesta.statusCode(),
+                                        respuesta.body());
                             }
                         })
                         .exceptionally(e -> {
-                            log.error("Error al conectar con n8n en {}: {}", targetUrl, e.getMessage());
+                            LOG.error("Error al conectar con n8n en {}: {}", urlDestino, e.getMessage());
                             return null;
                         });
 
             } catch (Exception e) {
-                log.error("Error preparando el webhook para n8n", e);
+                LOG.error("Error preparando el webhook para n8n", e);
             }
         });
     }

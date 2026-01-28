@@ -27,7 +27,7 @@ import java.time.Duration;
 
 /**
  * Controlador de autenticación con cookies seguras.
- * 
+ *
  * SEGURIDAD IMPLEMENTADA:
  * - C-02: JWT en cookie HttpOnly (no accesible por JS)
  * - C-04: SameSite=Strict explícito para prevenir CSRF
@@ -36,15 +36,16 @@ import java.time.Duration;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Autenticación", description = "API para autenticación de usuarios")
+@lombok.RequiredArgsConstructor
 public class AuthController {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
-    private static final String JWT_COOKIE_NAME = "jwt_token";
-    private static final int COOKIE_MAX_AGE_HOURS = 24;
+    private static final Logger LOG = LoggerFactory.getLogger(AuthController.class);
+    private static final String NOMBRE_COOKIE_JWT = "jwt_token";
+    private static final int DURACION_COOKIE_HORAS = 24;
 
     private final AuthenticationManager authenticationManager;
-    private final SocioRepository socioRepository;
-    private final JwtTokenProvider jwtUtils;
+    private final SocioRepository repositorioSocio;
+    private final JwtTokenProvider proveedorToken;
 
     /**
      * SEGURIDAD: Flag para forzar cookies seguras en producción.
@@ -52,69 +53,61 @@ public class AuthController {
      * En producción, configurar app.cookie.secure=true
      */
     @Value("${app.cookie.secure:false}")
-    private boolean forceSecureCookie;
-
-    public AuthController(AuthenticationManager authenticationManager,
-            SocioRepository socioRepository,
-            JwtTokenProvider jwtUtils) {
-        this.authenticationManager = authenticationManager;
-        this.socioRepository = socioRepository;
-        this.jwtUtils = jwtUtils;
-    }
+    private boolean forzarCookieSegura;
 
     @PostMapping("/login")
     @Operation(summary = "Iniciar sesión", description = "Autentica al usuario y retorna un token JWT en cookie HttpOnly con SameSite=Strict")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest,
-            HttpServletRequest request,
-            HttpServletResponse response) {
-        log.info("Intento de login - usuario: {}", loginRequest.getUsername());
+    public ResponseEntity<?> autenticarUsuario(@Valid @RequestBody LoginRequest solicitudLogin,
+            HttpServletRequest peticion,
+            HttpServletResponse respuesta) {
+        LOG.info("Intento de login - usuario: {}", solicitudLogin.username());
 
         try {
-            Authentication authentication = authenticationManager.authenticate(
+            Authentication autenticacion = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.getUsername(),
-                            loginRequest.getPassword()));
+                            solicitudLogin.username(),
+                            solicitudLogin.password()));
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = jwtUtils.generateToken(authentication);
+            SecurityContextHolder.getContext().setAuthentication(autenticacion);
+            String jwt = proveedorToken.generateToken(autenticacion);
 
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            Socio socio = socioRepository.findByUsuario(userDetails.getUsername()).orElseThrow();
+            UserDetails detallesUsuario = (UserDetails) autenticacion.getPrincipal();
+            Socio socio = repositorioSocio.findByUsuario(detallesUsuario.getUsername()).orElseThrow();
 
             // SEGURIDAD C-02/C-04: Cookie con HttpOnly, Secure automático, y SameSite
-            addJwtCookie(response, jwt, request.isSecure());
+            agregarCookieJwt(respuesta, jwt, peticion.isSecure());
 
             // Log sin exponer rol para evitar fingerprinting
-            log.info("Login exitoso - userId: {}", socio.getIdSocio());
+            LOG.info("Login exitoso - userId: {}", socio.getIdSocio());
 
-            // Return user info without the token (token is in cookie)
-            return ResponseEntity.ok(new JwtResponse(null, // No token in body
+            // Retornamos info del usuario sin el token (el token va en la cookie)
+            return ResponseEntity.ok(new JwtResponse(null, // Token no va en body
                     socio.getIdSocio(),
                     socio.getUsuario(),
                     socio.getRol()));
         } catch (Exception e) {
-            log.warn("Login fallido - usuario: {}", loginRequest.getUsername());
+            LOG.warn("Login fallido - usuario: {}", solicitudLogin.username());
             throw e;
         }
     }
 
     @PostMapping("/logout")
     @Operation(summary = "Cerrar sesión", description = "Invalida la cookie JWT")
-    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
-        // Clear the JWT cookie using ResponseCookie for proper SameSite support
-        boolean isSecure = forceSecureCookie || request.isSecure();
+    public ResponseEntity<?> cerrarSesion(HttpServletRequest peticion, HttpServletResponse respuesta) {
+        // Limpiar la cookie JWT usando ResponseCookie para soporte correcto de SameSite
+        boolean esSeguro = forzarCookieSegura || peticion.isSecure();
 
-        ResponseCookie cookie = ResponseCookie.from(JWT_COOKIE_NAME, "")
+        ResponseCookie cookie = ResponseCookie.from(NOMBRE_COOKIE_JWT, "")
                 .httpOnly(true)
-                .secure(isSecure)
+                .secure(esSeguro)
                 .path("/")
-                .maxAge(0) // Delete immediately
+                .maxAge(0) // Eliminar inmediatamente
                 .sameSite("Strict")
                 .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        respuesta.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        log.info("Logout ejecutado");
+        LOG.info("Logout ejecutado");
         return ResponseEntity.ok().body("{\"message\": \"Sesión cerrada correctamente\"}");
     }
 
@@ -124,24 +117,24 @@ public class AuthController {
      * - Secure: Solo enviada por HTTPS (protege contra MITM)
      * - SameSite=Strict: No enviada en requests cross-site (protege contra CSRF)
      * - Path=/: Disponible para toda la aplicación
-     * 
-     * @param response        HttpServletResponse donde añadir la cookie
-     * @param jwt             Token JWT a almacenar
-     * @param requestIsSecure Si la request original fue por HTTPS
+     *
+     * @param respuesta        HttpServletResponse donde añadir la cookie
+     * @param jwt              Token JWT a almacenar
+     * @param peticionEsSegura Si la request original fue por HTTPS
      */
-    private void addJwtCookie(HttpServletResponse response, String jwt, boolean requestIsSecure) {
+    private void agregarCookieJwt(HttpServletResponse respuesta, String jwt, boolean peticionEsSegura) {
         // Secure flag: true si la request es HTTPS O si está forzado por config
-        boolean isSecure = forceSecureCookie || requestIsSecure;
+        boolean esSeguro = forzarCookieSegura || peticionEsSegura;
 
         // Usar ResponseCookie de Spring para soporte completo de SameSite
-        ResponseCookie cookie = ResponseCookie.from(JWT_COOKIE_NAME, jwt)
+        ResponseCookie cookie = ResponseCookie.from(NOMBRE_COOKIE_JWT, jwt)
                 .httpOnly(true) // Protección XSS
-                .secure(isSecure) // Solo HTTPS en producción
+                .secure(esSeguro) // Solo HTTPS en producción
                 .path("/")
-                .maxAge(java.util.Objects.requireNonNull(Duration.ofHours(COOKIE_MAX_AGE_HOURS)))
+                .maxAge(java.util.Objects.requireNonNull(Duration.ofHours(DURACION_COOKIE_HORAS)))
                 .sameSite("Strict") // Protección CSRF fuerte
                 .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        respuesta.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

@@ -22,7 +22,11 @@ public interface LibroRepository extends JpaRepository<Libro, Long> {
         // Filtered by ID exclusion (for 'excludeRead' feature)
         Page<Libro> findByIdLibroNotIn(List<Long> ids, Pageable pageable);
 
+        List<Libro> findByIdLibroNotIn(List<Long> ids);
+
         Page<Libro> findByCategoriaAndIdLibroNotIn(String categoria, List<Long> ids, Pageable pageable);
+
+        List<Libro> findByCategoriaAndIdLibroNotIn(String categoria, List<Long> ids);
 
         @org.springframework.data.jpa.repository.Query("SELECT l FROM Libro l WHERE (LOWER(l.titulo) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(l.autor) LIKE LOWER(CONCAT('%', :search, '%'))) AND l.idLibro NOT IN :ids")
         Page<Libro> findBySearchAndIdLibroNotIn(

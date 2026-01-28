@@ -1,13 +1,13 @@
 package com.biblioteca.service;
 
 import com.biblioteca.events.PrestamoDevueltoEvent;
+import com.biblioteca.model.EstadoPrestamo;
+import com.biblioteca.model.EstadoEjemplar;
 import com.biblioteca.model.Ejemplar;
 import com.biblioteca.model.Libro;
 import com.biblioteca.model.Prestamo;
 import com.biblioteca.model.Socio;
-import com.biblioteca.repository.EjemplarRepository;
 import com.biblioteca.repository.PrestamoRepository;
-import com.biblioteca.repository.SocioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,9 +37,9 @@ class PrestamoServiceTest {
     @Mock
     private PrestamoRepository prestamoRepository;
     @Mock
-    private SocioRepository socioRepository;
+    private SocioService socioService; // Changed from Repository
     @Mock
-    private EjemplarRepository ejemplarRepository;
+    private EjemplarService ejemplarService; // Changed from Repository
     @Mock
     private ApplicationEventPublisher eventPublisher;
     @Mock
@@ -69,13 +69,13 @@ class PrestamoServiceTest {
         ejemplar = new Ejemplar();
         ejemplar.setIdEjemplar(10L);
         ejemplar.setLibro(libro);
-        ejemplar.setEstado("DISPONIBLE");
+        ejemplar.setEstado(EstadoEjemplar.DISPONIBLE);
 
         prestamoActivo = new Prestamo();
         prestamoActivo.setIdPrestamo(55L);
         prestamoActivo.setSocio(socio);
         prestamoActivo.setEjemplar(ejemplar);
-        prestamoActivo.setEstado("ACTIVO");
+        prestamoActivo.setEstado(EstadoPrestamo.ACTIVO);
         prestamoActivo.setFechaPrestamo(new Date());
     }
 
@@ -83,9 +83,9 @@ class PrestamoServiceTest {
     @DisplayName("Debe crear un préstamo exitosamente (Happy Path)")
     void testCrearPrestamo_HappyPath() {
         // Arrange
-        when(socioRepository.findById(1L)).thenReturn(Optional.of(socio));
-        when(ejemplarRepository.findById(10L)).thenReturn(Optional.of(ejemplar));
-        // No verificamos límites en Java, delegamos a DB
+        when(socioService.buscarPorId(1L)).thenReturn(Optional.of(socio));
+        when(ejemplarService.buscarEjemplarPorId(10L)).thenReturn(ejemplar);
+        // Mocks por defecto retornan 0/false, permitiendo el paso de validaciones Java
 
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(invocation -> {
             Prestamo p = invocation.getArgument(0);
@@ -99,8 +99,11 @@ class PrestamoServiceTest {
         // Assert
         assertNotNull(resultado);
         assertEquals(100L, resultado.getIdPrestamo());
-        assertEquals("ACTIVO", resultado.getEstado());
-        assertEquals("PRESTADO", ejemplar.getEstado()); // Verificamos que se actualiza en memoria
+        assertEquals(EstadoPrestamo.ACTIVO, resultado.getEstado());
+
+        // Verificar que se llamó al servicio para actualizar estado
+        verify(ejemplarService).actualizarEstadoEjemplar(10L, EstadoEjemplar.PRESTADO);
+
         verify(prestamoRepository).save(any(Prestamo.class));
         verify(entityManager).refresh(any());
     }
@@ -109,9 +112,9 @@ class PrestamoServiceTest {
     @DisplayName("Falla si el ejemplar no está disponible")
     void testCrearPrestamo_NoDisponible() {
         // Arrange
-        ejemplar.setEstado("PRESTADO");
-        when(socioRepository.findById(1L)).thenReturn(Optional.of(socio));
-        when(ejemplarRepository.findById(10L)).thenReturn(Optional.of(ejemplar));
+        ejemplar.setEstado(EstadoEjemplar.PRESTADO);
+        when(socioService.buscarPorId(1L)).thenReturn(Optional.of(socio));
+        when(ejemplarService.buscarEjemplarPorId(10L)).thenReturn(ejemplar);
 
         // Act & Assert
         assertThrows(IllegalStateException.class, () -> {
@@ -123,8 +126,8 @@ class PrestamoServiceTest {
     @DisplayName("Captura error de triggers (DataIntegrityViolation)")
     void testCrearPrestamo_TriggerError() {
         // Arrange
-        when(socioRepository.findById(1L)).thenReturn(Optional.of(socio));
-        when(ejemplarRepository.findById(10L)).thenReturn(Optional.of(ejemplar));
+        when(socioService.buscarPorId(1L)).thenReturn(Optional.of(socio));
+        when(ejemplarService.buscarEjemplarPorId(10L)).thenReturn(ejemplar);
 
         // Simular error de Trigger
         DataIntegrityViolationException sqlException = new DataIntegrityViolationException("Error wrapper",
@@ -136,26 +139,26 @@ class PrestamoServiceTest {
             prestamoService.crearPrestamo(1L, 10L);
         });
 
-        assertTrue(exception.getMessage().contains("violado reglas de negocio"));
+        assertTrue(exception.getMessage().toLowerCase().contains("conflicto de datos"));
     }
 
     @Test
     @DisplayName("Debo devolver préstamo exitosamente y disparar evento")
     void testDevolverPrestamo_HappyPath() {
         // Arrange
-        ejemplar.setEstado("PRESTADO");
+        ejemplar.setEstado(EstadoEjemplar.PRESTADO);
         when(prestamoRepository.findByIdWithDetails(55L)).thenReturn(Optional.of(prestamoActivo));
 
         // Act
         prestamoService.devolverPrestamo(55L, "testuser", false);
 
         // Assert
-        assertEquals("DEVUELTO", prestamoActivo.getEstado());
+        assertEquals(EstadoPrestamo.DEVUELTO, prestamoActivo.getEstado());
         assertNotNull(prestamoActivo.getFechaDevolucionReal());
-        assertEquals("DISPONIBLE", ejemplar.getEstado()); // Ahora verificado
+
+        verify(ejemplarService).actualizarEstadoEjemplar(10L, EstadoEjemplar.DISPONIBLE);
 
         verify(prestamoRepository).save(prestamoActivo);
-        verify(ejemplarRepository).save(ejemplar);
 
         // Verificar que se publica el evento
         ArgumentCaptor<PrestamoDevueltoEvent> eventCaptor = ArgumentCaptor.forClass(PrestamoDevueltoEvent.class);
@@ -167,7 +170,7 @@ class PrestamoServiceTest {
     @DisplayName("No puede devolver un préstamo que ya fue devuelto")
     void testDevolverPrestamo_YaDevuelto() {
         // Arrange
-        prestamoActivo.setEstado("DEVUELTO");
+        prestamoActivo.setEstado(EstadoPrestamo.DEVUELTO);
         when(prestamoRepository.findByIdWithDetails(55L)).thenReturn(Optional.of(prestamoActivo));
 
         // Act & Assert

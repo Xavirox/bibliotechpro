@@ -19,7 +19,7 @@
 import { fetchWithAuth } from './api.js';
 import { currentUser } from './auth.js';
 import { getGradient, getIcon, showToast, escapeHtml } from './utils.js';
-import { BOOK_STATUS } from './constants.js';
+import { BOOK_STATUS, CATEGORY_EMOJIS } from './constants.js';
 
 // ============================================
 // ESTADO DE PAGINACIÓN
@@ -274,19 +274,7 @@ function createBookCard(libro, index, isAvailable) {
     if (!isAvailable) card.classList.add('unavailable');
 
     // Badge de categoría con emoji
-    const categoryEmojis = {
-        'Novela': '📖',
-        'Ciencia Ficción': '🚀',
-        'Fantasía': '🐉',
-        'Biografía': '👤',
-        'Historia': '🏛️',
-        'Tecnología': '💻',
-        'Terror': '👻',
-        'Romance': '💕',
-        'Aventura': '🗺️',
-        'Misterio': '🔍'
-    };
-    const categoryEmoji = categoryEmojis[libro.categoria] || '📚';
+    const categoryEmoji = CATEGORY_EMOJIS[libro.categoria] || '📚';
 
     // SEGURIDAD: Escapar todos los datos del servidor para prevenir XSS
     const safeTitle = escapeHtml(libro.titulo);
