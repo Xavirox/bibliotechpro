@@ -1,15 +1,16 @@
 package com.biblioteca.service;
 
 import com.biblioteca.events.PrestamoDevueltoEvent;
+import com.biblioteca.model.EstadoBloqueo;
 import com.biblioteca.model.Ejemplar;
 import com.biblioteca.model.EstadoEjemplar;
 import com.biblioteca.model.EstadoPrestamo;
 import com.biblioteca.model.Prestamo;
 import com.biblioteca.model.Socio;
+import com.biblioteca.repository.BloqueoRepository;
 import com.biblioteca.repository.PrestamoRepository;
 
 import jakarta.persistence.EntityManager;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -24,21 +25,49 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
-@RequiredArgsConstructor
 public class PrestamoService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrestamoService.class);
     private static final long DIAS_DURACION_PRESTAMO = 15L;
 
     private final PrestamoRepository repositorioPrestamo;
+    private final BloqueoRepository repositorioBloqueo;
     private final SocioService servicioSocio;
     private final EjemplarService servicioEjemplar;
     private final ApplicationEventPublisher publicadorEventos;
     private final WebhookService servicioWebhook;
     private final EntityManager gestorEntidades;
 
+    public PrestamoService(
+            PrestamoRepository repositorioPrestamo,
+            BloqueoRepository repositorioBloqueo,
+            SocioService servicioSocio,
+            EjemplarService servicioEjemplar,
+            ApplicationEventPublisher publicadorEventos,
+            WebhookService servicioWebhook,
+            EntityManager gestorEntidades) {
+        this.repositorioPrestamo = repositorioPrestamo;
+        this.repositorioBloqueo = repositorioBloqueo;
+        this.servicioSocio = servicioSocio;
+        this.servicioEjemplar = servicioEjemplar;
+        this.publicadorEventos = publicadorEventos;
+        this.servicioWebhook = servicioWebhook;
+        this.gestorEntidades = gestorEntidades;
+    }
+
     /**
-     * Registra un nuevo préstamo tras validar las reglas de negocio.
+     * Registra un nuevo préstamo para un socio.
+     * <p>
+     * Se aplican las siguientes validaciones estrictas:
+     * 1. El ejemplar debe estar disponible.
+     * 2. El socio no debe superar su límite de préstamos activos (por defecto 1).
+     * 3. El socio no puede tener ya prestado un ejemplar del mismo libro (evitar
+     * duplicados).
+     *
+     * @param idSocio    Identificador del socio.
+     * @param idEjemplar Identificador del ejemplar.
+     * @return El préstamo creado.
+     * @throws IllegalStateException Si alguna regla de negocio impide el préstamo.
      */
     @Transactional
     public Prestamo crearPrestamo(Long idSocio, Long idEjemplar) {
@@ -57,6 +86,16 @@ public class PrestamoService {
         return persistirYNotificarPrestamo(prestamo);
     }
 
+    /**
+     * Procesa la devolución de un libro prestado.
+     *
+     * @param idPrestamo         ID del préstamo a finalizar.
+     * @param usuarioSolicitante Usuario que intenta realizar la devolución.
+     * @param esAutoridad        True si es Admin/Bibliotecario (puede devolver
+     *                           libros de otros).
+     *                           False si es el propio socio (solo puede devolver
+     *                           sus propios libros).
+     */
     @Transactional
     public void devolverPrestamo(Long idPrestamo, String usuarioSolicitante, boolean esAutoridad) {
         Objects.requireNonNull(idPrestamo, "El ID del préstamo es requerido.");
@@ -73,6 +112,12 @@ public class PrestamoService {
         procesarDevolucionInterna(prestamo);
     }
 
+    /**
+     * Obtiene todos los préstamos del sistema, opcionalmente filtrados por estado.
+     *
+     * @param estado Estado del préstamo (ACTIVO, DEVUELTO) o null para todos.
+     * @return Lista de préstamos.
+     */
     @Transactional(readOnly = true)
     public List<Prestamo> obtenerTodosLosPrestamos(String estado) {
         if (estado != null) {
@@ -81,6 +126,12 @@ public class PrestamoService {
         return repositorioPrestamo.findAllWithDetails();
     }
 
+    /**
+     * Obtiene el historial de préstamos de un usuario específico.
+     *
+     * @param usuario Nombre de usuario (username).
+     * @return Lista de préstamos del usuario.
+     */
     @Transactional(readOnly = true)
     public List<Prestamo> obtenerPrestamosDeUsuario(String usuario) {
         if (usuario == null || usuario.trim().isEmpty()) {
@@ -96,13 +147,12 @@ public class PrestamoService {
     // ------------------------------------------------------------------------------------------------
 
     private Prestamo construirPrestamoInicial(Socio socio, Ejemplar ejemplar) {
-        return Prestamo.builder()
-                .socio(socio)
-                .ejemplar(ejemplar)
-                .estado(EstadoPrestamo.ACTIVO)
-                .fechaPrestamo(new Date())
-                .fechaPrevistaDevolucion(Date.from(Instant.now().plus(DIAS_DURACION_PRESTAMO, ChronoUnit.DAYS)))
-                .build();
+        return new Prestamo(
+                socio,
+                ejemplar,
+                EstadoPrestamo.ACTIVO,
+                new Date(),
+                Date.from(Instant.now().plus(DIAS_DURACION_PRESTAMO, ChronoUnit.DAYS)));
     }
 
     private Prestamo persistirYNotificarPrestamo(Prestamo prestamo) {
@@ -159,9 +209,14 @@ public class PrestamoService {
     private void validarLimitePrestamos(Socio socio) {
         long prestamosActivos = repositorioPrestamo.countBySocioIdSocioAndEstado(socio.getIdSocio(),
                 EstadoPrestamo.ACTIVO);
-        if (prestamosActivos >= socio.getMaxPrestamosActivos()) {
+
+        long bloqueosActivos = repositorioBloqueo.countActiveBloqueosBySocio(socio.getIdSocio(),
+                EstadoBloqueo.ACTIVO, new Date());
+
+        if ((prestamosActivos + bloqueosActivos) >= socio.getMaxPrestamosActivos()) {
             throw new IllegalStateException(
-                    String.format("Límite de préstamos alcanzado (%d).", socio.getMaxPrestamosActivos()));
+                    String.format("Límite de lecturas activas alcanzado (%d). Préstamos: %d, Reservas: %d",
+                            socio.getMaxPrestamosActivos(), prestamosActivos, bloqueosActivos));
         }
     }
 

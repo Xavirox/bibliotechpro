@@ -2,19 +2,11 @@ package com.biblioteca.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.util.Date;
 
 @Entity
 @Table(name = "BLOQUEO")
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Bloqueo {
 
     @Id
@@ -41,4 +33,65 @@ public class Bloqueo {
     @Column(name = "ESTADO", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     private EstadoBloqueo estado;
+
+    // Constructores
+    public Bloqueo() {
+    }
+
+    public Bloqueo(Socio socio, Ejemplar ejemplar, Date fechaInicio, Date fechaFin, EstadoBloqueo estado) {
+        this.socio = socio;
+        this.ejemplar = ejemplar;
+        this.fechaInicio = fechaInicio;
+        this.fechaFin = fechaFin;
+        this.estado = estado;
+    }
+
+    // Getters y Setters
+    public Long getIdBloqueo() {
+        return idBloqueo;
+    }
+
+    public void setIdBloqueo(Long idBloqueo) {
+        this.idBloqueo = idBloqueo;
+    }
+
+    public Socio getSocio() {
+        return socio;
+    }
+
+    public void setSocio(Socio socio) {
+        this.socio = socio;
+    }
+
+    public Ejemplar getEjemplar() {
+        return ejemplar;
+    }
+
+    public void setEjemplar(Ejemplar ejemplar) {
+        this.ejemplar = ejemplar;
+    }
+
+    public Date getFechaInicio() {
+        return fechaInicio;
+    }
+
+    public void setFechaInicio(Date fechaInicio) {
+        this.fechaInicio = fechaInicio;
+    }
+
+    public Date getFechaFin() {
+        return fechaFin;
+    }
+
+    public void setFechaFin(Date fechaFin) {
+        this.fechaFin = fechaFin;
+    }
+
+    public EstadoBloqueo getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoBloqueo estado) {
+        this.estado = estado;
+    }
 }

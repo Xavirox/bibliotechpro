@@ -24,4 +24,4 @@ const getApiUrl = () => {
  */
 export const API_URL = getApiUrl();
 
-console.log('BiblioTech Pro - API URL:', API_URL);
+

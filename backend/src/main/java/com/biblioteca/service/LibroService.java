@@ -19,12 +19,20 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-@lombok.RequiredArgsConstructor
 public class LibroService {
 
     private final LibroRepository repositorioLibro;
     private final PrestamoRepository repositorioPrestamo;
     private final SocioRepository repositorioSocio;
+
+    public LibroService(
+            LibroRepository repositorioLibro,
+            PrestamoRepository repositorioPrestamo,
+            SocioRepository repositorioSocio) {
+        this.repositorioLibro = repositorioLibro;
+        this.repositorioPrestamo = repositorioPrestamo;
+        this.repositorioSocio = repositorioSocio;
+    }
 
     @Transactional(readOnly = true)
     @org.springframework.cache.annotation.Cacheable(value = "libros", key = "#categoria ?: 'all'", condition = "#usuario == null && (#excluirLeidos == null || !#excluirLeidos) && (#soloLeidos == null || !#soloLeidos)")

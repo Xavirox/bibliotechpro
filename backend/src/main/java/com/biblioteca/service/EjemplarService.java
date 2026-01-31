@@ -12,11 +12,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@lombok.RequiredArgsConstructor
 public class EjemplarService {
 
     private static final Logger LOG = LoggerFactory.getLogger(EjemplarService.class);
     private final EjemplarRepository repositorioEjemplar;
+
+    public EjemplarService(EjemplarRepository repositorioEjemplar) {
+        this.repositorioEjemplar = repositorioEjemplar;
+    }
 
     @Transactional(readOnly = true)
     public List<Ejemplar> listarEjemplares(Long idLibro, String estado) {

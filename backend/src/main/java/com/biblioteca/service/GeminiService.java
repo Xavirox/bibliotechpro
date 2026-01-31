@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -22,31 +21,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
+import com.biblioteca.config.AiServiceProperties;
 import java.util.stream.Collectors;
 
 @Service
 public class GeminiService {
 
     private static final Logger LOG = LoggerFactory.getLogger(GeminiService.class);
-    private static final String DEFAULT_AI_URL = "http://ai-service:8000/api/recomendar";
 
     private final PrestamoRepository repositorioPrestamo;
     private final LibroRepository repositorioLibro;
     private final SocioRepository repositorioSocio;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-
-    @Value("${ai.service.url:" + DEFAULT_AI_URL + "}")
-    private String urlServicioIA;
+    private final AiServiceProperties aiProperties;
 
     public GeminiService(PrestamoRepository repositorioPrestamo,
             LibroRepository repositorioLibro,
             SocioRepository repositorioSocio,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            AiServiceProperties aiProperties) {
         this.repositorioPrestamo = repositorioPrestamo;
         this.repositorioLibro = repositorioLibro;
         this.repositorioSocio = repositorioSocio;
         this.objectMapper = objectMapper;
+        this.aiProperties = aiProperties;
 
         SimpleClientHttpRequestFactory fabricaSolicitudes = new SimpleClientHttpRequestFactory();
         fabricaSolicitudes.setConnectTimeout(2000); // 2 segundos
@@ -102,10 +101,10 @@ public class GeminiService {
                     "catalogo", catalogo,
                     "id_usuario", String.valueOf(idSocio));
 
-            Objects.requireNonNull(urlServicioIA, "La URL del servicio de IA no está configurada");
+            String url = Objects.requireNonNull(aiProperties.getUrl(), "La URL del servicio de IA no está configurada");
 
             ResponseEntity<String> respuesta = restTemplate.postForEntity(
-                    urlServicioIA,
+                    url,
                     new HttpEntity<>(cuerpoPeticion, cabeceras),
                     String.class);
 
@@ -171,5 +170,49 @@ public class GeminiService {
                     return new RecomendacionDTO(l.getTitulo(), motivo);
                 })
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Genera un texto de recomendación basado en categorías proporcionadas.
+     * Utilizado por el Bot de Telegram como alternativa directa/fallback.
+     */
+    public String obtenerRecomendacionTexto(List<String> categorias) {
+        LOG.info("Generando recomendación textual para categorías: {}", categorias);
+
+        List<Libro> seleccionados = new ArrayList<>();
+
+        // Intentar buscar un libro por cada categoría
+        for (String cat : categorias) {
+            List<Libro> librosCat = repositorioLibro.findByCategoria(cat);
+            if (!librosCat.isEmpty()) {
+                Collections.shuffle(librosCat);
+                seleccionados.add(librosCat.get(0));
+            }
+        }
+
+        // Si no encontramos suficientes, rellenar con aleatorios
+        if (seleccionados.size() < 3) {
+            List<Libro> aleatorios = repositorioLibro.findRandomBooks(3 - seleccionados.size());
+            seleccionados.addAll(aleatorios);
+        }
+
+        if (seleccionados.isEmpty()) {
+            return "Lo siento, no he encontrado libros que coincidan con esos intereses en este momento.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("✨ ¡Excelente elección de temas! Basado en tu interés por ");
+        sb.append(String.join(", ", categorias));
+        sb.append(", aquí tienes mis recomendaciones para hoy:\n\n");
+
+        for (Libro libro : seleccionados) {
+            sb.append("📖 **").append(libro.getTitulo()).append("**\n");
+            sb.append("   _de ").append(libro.getAutor()).append("_\n");
+            sb.append("   Categoría: ").append(libro.getCategoria()).append("\n\n");
+        }
+
+        sb.append("💡 _Estas obras han sido seleccionadas de nuestro catálogo especialmente para ti._");
+
+        return sb.toString();
     }
 }

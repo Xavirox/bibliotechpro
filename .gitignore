@@ -7,27 +7,42 @@
 *.iml
 .vscode/
 
-# Maven
+# Maven (Backend)
 target/
+
+# Node/Nginx (Frontend)
+node_modules/
+dist/
+build/
+
+# Python (AI/Bot)
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+env/
 
 # Logs
 *.log
 logs/
 frontend/logs/
 
-# OS
+# OS Files
 .DS_Store
 Thumbs.db
 
 # Docker
 docker-compose.override.yml
 
-# Deployment artifacts
+# Deployment & Backups
 deploy_package.zip
+_archive/
+*.bak
+*.tmp
+tmp/
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-
+# Data & Certs (Local)
+certs/
+db/data/
+n8n_data/

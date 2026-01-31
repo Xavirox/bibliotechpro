@@ -2,19 +2,11 @@ package com.biblioteca.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import java.util.Date;
 
 @Entity
 @Table(name = "PRESTAMO")
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Prestamo {
 
     @Id
@@ -49,4 +41,82 @@ public class Prestamo {
     @OneToOne
     @JoinColumn(name = "ID_BLOQUEO")
     private Bloqueo bloqueo;
+
+    // Constructores
+    public Prestamo() {
+    }
+
+    public Prestamo(Socio socio, Ejemplar ejemplar, EstadoPrestamo estado, Date fechaPrestamo,
+            Date fechaPrevistaDevolucion) {
+        this.socio = socio;
+        this.ejemplar = ejemplar;
+        this.estado = estado;
+        this.fechaPrestamo = fechaPrestamo;
+        this.fechaPrevistaDevolucion = fechaPrevistaDevolucion;
+    }
+
+    // Getters y Setters
+    public Long getIdPrestamo() {
+        return idPrestamo;
+    }
+
+    public void setIdPrestamo(Long idPrestamo) {
+        this.idPrestamo = idPrestamo;
+    }
+
+    public Socio getSocio() {
+        return socio;
+    }
+
+    public void setSocio(Socio socio) {
+        this.socio = socio;
+    }
+
+    public Ejemplar getEjemplar() {
+        return ejemplar;
+    }
+
+    public void setEjemplar(Ejemplar ejemplar) {
+        this.ejemplar = ejemplar;
+    }
+
+    public Date getFechaPrestamo() {
+        return fechaPrestamo;
+    }
+
+    public void setFechaPrestamo(Date fechaPrestamo) {
+        this.fechaPrestamo = fechaPrestamo;
+    }
+
+    public Date getFechaPrevistaDevolucion() {
+        return fechaPrevistaDevolucion;
+    }
+
+    public void setFechaPrevistaDevolucion(Date fechaPrevistaDevolucion) {
+        this.fechaPrevistaDevolucion = fechaPrevistaDevolucion;
+    }
+
+    public Date getFechaDevolucionReal() {
+        return fechaDevolucionReal;
+    }
+
+    public void setFechaDevolucionReal(Date fechaDevolucionReal) {
+        this.fechaDevolucionReal = fechaDevolucionReal;
+    }
+
+    public EstadoPrestamo getEstado() {
+        return estado;
+    }
+
+    public void setEstado(EstadoPrestamo estado) {
+        this.estado = estado;
+    }
+
+    public Bloqueo getBloqueo() {
+        return bloqueo;
+    }
+
+    public void setBloqueo(Bloqueo bloqueo) {
+        this.bloqueo = bloqueo;
+    }
 }

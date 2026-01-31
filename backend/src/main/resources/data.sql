@@ -1,8 +1,8 @@
 -- Usuarios iniciales
 INSERT INTO socio (usuario, password_hash, nombre, rol, email, max_prestamos_activos) VALUES ('admin', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'Administrador', 'ADMIN', 'admin@biblioteca.com', 5);
 INSERT INTO socio (usuario, password_hash, nombre, rol, email, max_prestamos_activos) VALUES ('bibliotecario', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'Bibliotecario Jefe', 'BIBLIOTECARIO', 'biblio@biblioteca.com', 3);
-INSERT INTO socio (usuario, password_hash, nombre, rol, email, max_prestamos_activos) VALUES ('user1', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'Juan Lector', 'SOCIO', 'juan@email.com', 3);
-INSERT INTO socio (usuario, password_hash, nombre, rol, email, max_prestamos_activos) VALUES ('user2', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'Ana Libro', 'SOCIO', 'ana@email.com', 3);
+INSERT INTO socio (usuario, password_hash, nombre, rol, email, max_prestamos_activos) VALUES ('user1', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'Juan Lector', 'SOCIO', 'juan@email.com', 1);
+INSERT INTO socio (usuario, password_hash, nombre, rol, email, max_prestamos_activos) VALUES ('user2', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'Ana Libro', 'SOCIO', 'ana@email.com', 1);
 
 -- Libros de ejemplo
 INSERT INTO libro (titulo, autor, isbn, categoria, anio) VALUES 

@@ -28,10 +28,10 @@
 
 ### 🌟 Puntos Destacados
 
-- **Diseño Premium**: Interfaz glassmorphism con animaciones fluidas y modo oscuro
-- **IA Integrada**: Recomendaciones personalizadas mediante Google Gemini AI
-- **Arquitectura Limpia**: Separación clara de responsabilidades y código modular
-- **Experiencia de Usuario Superior**: Microinteracciones, feedback visual instantáneo
+- **Arquitectura Robusta**: Backend Spring Boot siguiendo arquitectura por capas (Controller-Service-Repository).
+- **Seguridad**: Autenticación JWT y validación exhaustiva de reglas de negocio.
+- **Calidad de Código**: Tests unitarios con JUnit 5 y documentación Javadoc integrada.
+- **Interfaz Limpia**: Diseño responsive y accesible enfocado en la usabilidad.
 
 ---
 
@@ -41,52 +41,34 @@
 
 | Rol | Capacidades |
 |-----|-------------|
-| **Socio** | Explorar catálogo, reservar libros, gestionar préstamos, recibir recomendaciones IA |
-| **Bibliotecario** | Todo lo anterior + gestión de préstamos, visualización de estadísticas |
-| **Administrador** | Acceso completo al sistema |
+| **Socio** | Explorar catálogo, reservar libros, consultar historial de préstamos. |
+| **Bibliotecario** | Gestión integral de préstamos y devoluciones, control de inventario. |
+| **Administrador** | Administración total del sistema y usuarios. |
 
-### 📖 Gestión de Libros
+### 📖 Funcionalidades Core
 
-- ✅ Catálogo completo con búsqueda en tiempo real
-- ✅ Filtrado por categorías (Novela, Ciencia Ficción, Fantasía, etc.)
-- ✅ Sistema de reservas con expiración automática (24h)
-- ✅ Control de disponibilidad de ejemplares
-- ✅ Historial de préstamos completo
+- ✅ Catálogo de libros con búsqueda y filtrado dinámico
+- ✅ Control de disponibilidad de ejemplares en tiempo real
+- ✅ Sistema de reservas (Bloqueos) con expiración automática
+- ✅ Gestión de préstamos y devoluciones con validación de límites
+- ✅ Historial detallado de lectura por usuario
 
-### 🤖 Inteligencia Artificial
+### 🎨 Interfaz de Usuario
 
-- ✅ Motor de recomendaciones personalizado
-- ✅ Análisis de historial de lectura
-- ✅ Sugerencias basadas en preferencias detectadas
-- ✅ Integración con **Google Gemini API**
-
-### 🎨 Diseño & UX Premium
-
-- ✅ Interfaz moderna con glassmorphism
-- ✅ Animaciones CSS3 fluidas
-- ✅ Efecto 3D tilt en tarjetas de libros
+- ✅ Diseño moderno y minimalista
 - ✅ Modo claro/oscuro con persistencia
 - ✅ Totalmente responsive (desktop, tablet, móvil)
 - ✅ Accesibilidad WCAG 2.1 AA
 
-### 🤖 Bot de Telegram
+### 🔌 Integraciones y Automatización (Módulo Avanzado)
 
-- ✅ Consultas del catálogo en tiempo real
-- ✅ Recomendaciones automáticas cada hora
-- ✅ Sistema de suscripciones opt-in
-- ✅ Búsqueda por categorías
-- ✅ Integración con n8n para automatizaciones
-- ✅ Notificaciones de reservas y préstamos
+Implementación de arquitecturas modernas y orquestación de servicios para demostrar competencias técnicas avanzadas:
 
-**Comandos principales:**
-```
-/catalogo   - Ver libros disponibles
-/buscar X   - Buscar por título/autor
-/recomendar - Obtener recomendación IA
-/suscribir  - Activar notificaciones horarias
-```
+- **Bot de Telegram**: Interfaz conversacional accesible para consultas en movilidad.
+- **Automatización con n8n**: Workflows para la gestión de notificaciones y tareas programadas.
+- **Webhooks & APIs**: Integración en tiempo real entre microservicios.
 
-> Ver documentación completa en [docs/BOT_TELEGRAM.md](docs/BOT_TELEGRAM.md)
+> Este módulo evidencia el dominio de integración de sistemas, uso de APIs de terceros (Telegram, Gemini) y herramientas de automatización.
 
 
 ## 🏗️ Arquitectura
@@ -265,6 +247,91 @@ El proyecto implementa un sistema de diseño coherente basado en:
 🎨 Componentes CSS:        3 archivos modulares
 📡 Endpoints API:          15+ endpoints
 🧪 Cobertura de tests:     Backend con JUnit
+```
+
+---
+
+## 🔧 Troubleshooting y Mantenimiento
+
+### 🚨 Problemas Comunes en VPS
+
+#### El proyecto no responde
+
+Si tu proyecto en el VPS no está funcionando, ejecuta el diagnóstico automático:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\vps\diagnose_vps.ps1
+```
+
+Este script verifica:
+- ✅ Conexión SSH al VPS
+- ✅ Estado de todos los contenedores Docker
+- ✅ Logs recientes de cada servicio
+- ✅ Puertos expuestos
+- ✅ Conectividad de endpoints públicos
+- ✅ Uso de recursos (CPU/RAM)
+
+#### Oracle Database caído
+
+**Síntoma**: Backend muestra estado `unhealthy`, no puedes hacer login.
+
+**Solución rápida**:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\vps\recover_vps.ps1
+```
+
+Este script automáticamente:
+1. Reinicia Oracle Database
+2. Espera a que esté completamente iniciado
+3. Reinicia el Backend
+4. Verifica la conectividad
+
+**Tiempo estimado**: 3-4 minutos
+
+#### Problemas de memoria en el VPS
+
+Si el VPS tiene múltiples instancias Oracle corriendo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\vps\cleanup_memory.ps1
+```
+
+Este script te permite:
+- Ver uso de memoria del sistema
+- Identificar contenedores Oracle
+- Detener instancias innecesarias
+- Liberar recursos
+
+### 📚 Documentación de Troubleshooting
+
+Para análisis detallado de problemas, consulta:
+
+- **`GUIA_RECUPERACION.md`**: Guía paso a paso para recuperar el proyecto
+- **`DIAGNOSTICO_VPS.md`**: Análisis completo de problemas comunes
+
+### 🛠️ Scripts de Mantenimiento
+
+| Script | Descripción | Uso |
+|--------|-------------|-----|
+| `diagnose_vps.ps1` | Diagnóstico completo del VPS | Identificar problemas |
+| `recover_vps.ps1` | Recuperación automática | Reiniciar servicios caídos |
+| `cleanup_memory.ps1` | Gestión de memoria | Liberar recursos |
+| `deploy_to_vps.ps1` | Despliegue completo | Actualizar el proyecto |
+
+### 📞 Comandos Útiles
+
+```bash
+# Ver logs en tiempo real
+ssh -i ~/.ssh/vps_key usuario@vps "cd ~/bibliotech-pro && docker compose logs -f backend"
+
+# Reiniciar un servicio específico
+ssh -i ~/.ssh/vps_key usuario@vps "cd ~/bibliotech-pro && docker compose restart backend"
+
+# Ver estado de contenedores
+ssh -i ~/.ssh/vps_key usuario@vps "cd ~/bibliotech-pro && docker compose ps"
+
+# Ver uso de recursos
+ssh -i ~/.ssh/vps_key usuario@vps "docker stats --no-stream"
 ```
 
 ---

@@ -36,4 +36,15 @@ public class RecomendacionController {
         List<RecomendacionDTO> resultado = servicioIA.obtenerRecomendacionesPorUsuario(usuario);
         return ResponseEntity.ok(resultado);
     }
+
+    @PostMapping
+    @Operation(summary = "Obtener recomendación por categorías", description = "Endpoint utilizado por el Bot para obtener una recomendación textual")
+    public ResponseEntity<java.util.Map<String, String>> recomendarPorCategorias(
+            @RequestBody java.util.Map<String, List<String>> request) {
+
+        List<String> categorias = request.getOrDefault("categorias", java.util.Collections.emptyList());
+        String recomendacionTexto = servicioIA.obtenerRecomendacionTexto(categorias);
+
+        return ResponseEntity.ok(java.util.Map.of("recomendacion", recomendacionTexto));
+    }
 }

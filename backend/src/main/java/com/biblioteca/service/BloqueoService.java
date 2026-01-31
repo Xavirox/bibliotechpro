@@ -11,7 +11,6 @@ import com.biblioteca.repository.BloqueoRepository;
 import com.biblioteca.repository.PrestamoRepository;
 
 import jakarta.persistence.EntityManager;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,6 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
-@RequiredArgsConstructor
 public class BloqueoService {
 
     private static final Logger LOG = LoggerFactory.getLogger(BloqueoService.class);
@@ -36,6 +34,35 @@ public class BloqueoService {
     private final WebhookService servicioWebhook;
     private final EntityManager gestorEntidades;
 
+    public BloqueoService(
+            BloqueoRepository repositorioBloqueo,
+            SocioService servicioSocio,
+            EjemplarService servicioEjemplar,
+            PrestamoRepository repositorioPrestamo,
+            WebhookService servicioWebhook,
+            EntityManager gestorEntidades) {
+        this.repositorioBloqueo = repositorioBloqueo;
+        this.servicioSocio = servicioSocio;
+        this.servicioEjemplar = servicioEjemplar;
+        this.repositorioPrestamo = repositorioPrestamo;
+        this.servicioWebhook = servicioWebhook;
+        this.gestorEntidades = gestorEntidades;
+    }
+
+    /**
+     * Crea una nueva reserva (bloqueo) para un usuario sobre un ejemplar.
+     * <p>
+     * Reglas de negocio aplicadas:
+     * 1. El ejemplar debe estar DISPONIBLE.
+     * 2. El usuario no puede tener bloquear más de 1 libro simultáneamente.
+     * 3. La suma de préstamos activos + reservas no puede superar el límite del
+     * usuario.
+     *
+     * @param usuario    El nombre de usuario (username) del socio.
+     * @param idEjemplar El ID del ejemplar a reservar.
+     * @return La entidad Bloqueo creada y persistida.
+     * @throws IllegalStateException Si no cumple las reglas de negocio.
+     */
     @Transactional
     public Bloqueo crearBloqueo(String usuario, Long idEjemplar) {
         validarEntrada(usuario, "El usuario no puede ser nulo o vacío.");
@@ -53,6 +80,13 @@ public class BloqueoService {
         return persistirYNotificarBloqueo(bloqueo, socio);
     }
 
+    /**
+     * Cancela una reserva activa, liberando el ejemplar para otros usuarios.
+     *
+     * @param idBloqueo ID de la reserva a cancelar.
+     * @param usuario   Usuario que solicita la cancelación (para verificación de
+     *                  seguridad).
+     */
     @Transactional
     public void cancelarBloqueo(Long idBloqueo, String usuario) {
         Objects.requireNonNull(idBloqueo, "El ID del bloqueo es requerido.");
@@ -67,6 +101,21 @@ public class BloqueoService {
         ejecutarCancelacion(bloqueo);
     }
 
+    /**
+     * Formaliza una reserva, convirtiéndola en un préstamo activo.
+     * <p>
+     * Este proceso:
+     * 1. Verifica que el usuario no haya excedido su límite de préstamos desde que
+     * hizo la reserva.
+     * 2. Crea un nuevo Préstamo.
+     * 3. Marca la Reserva como CONVERTIDA y el Ejemplar como PRESTADO.
+     *
+     * @param idBloqueo       ID de la reserva.
+     * @param usuario         Usuario que realiza la acción.
+     * @param esBibliotecario True si es un bibliotecario (salta chequeo de
+     *                        propiedad).
+     * @return El nuevo Préstamo creado.
+     */
     @Transactional
     public Prestamo formalizarBloqueo(Long idBloqueo, String usuario, boolean esBibliotecario) {
         Objects.requireNonNull(idBloqueo, "El ID del bloqueo es requerido.");
@@ -77,6 +126,9 @@ public class BloqueoService {
         Bloqueo bloqueo = buscarBloqueo(idBloqueo);
         validarPropiedad(bloqueo, usuario, esBibliotecario);
         validarEstadoActivo(bloqueo);
+
+        // Anti-Gravity Update: Ensure strict limit enforcement even during conversion
+        validarLimiteParaFormalizacion(bloqueo.getSocio());
 
         return convertirBloqueoAPrestamo(bloqueo);
     }
@@ -114,6 +166,15 @@ public class BloqueoService {
         if (reservasActivas > 0) {
             throw new IllegalStateException("El usuario ya tiene una reserva activa. Máximo permitido: 1.");
         }
+
+        long prestamosActivos = repositorioPrestamo.countBySocioIdSocioAndEstado(socio.getIdSocio(),
+                EstadoPrestamo.ACTIVO);
+
+        if ((reservasActivas + prestamosActivos) >= socio.getMaxPrestamosActivos()) {
+            throw new IllegalStateException(
+                    String.format("Límite de lecturas activas alcanzado (%d). Préstamos: %d, Reservas: %d",
+                            socio.getMaxPrestamosActivos(), prestamosActivos, reservasActivas));
+        }
     }
 
     private void validarEstadoActivo(Bloqueo bloqueo) {
@@ -123,13 +184,12 @@ public class BloqueoService {
     }
 
     private Bloqueo construirBloqueoInicial(Socio socio, Ejemplar ejemplar) {
-        return Bloqueo.builder()
-                .socio(socio)
-                .ejemplar(ejemplar)
-                .fechaInicio(new Date())
-                .fechaFin(Date.from(Instant.now().plus(1, ChronoUnit.DAYS)))
-                .estado(EstadoBloqueo.ACTIVO)
-                .build();
+        return new Bloqueo(
+                socio,
+                ejemplar,
+                new Date(),
+                Date.from(Instant.now().plus(1, ChronoUnit.DAYS)),
+                EstadoBloqueo.ACTIVO);
     }
 
     private Bloqueo persistirYNotificarBloqueo(Bloqueo bloqueo, Socio socio) {
@@ -228,6 +288,28 @@ public class BloqueoService {
     private void validarEntrada(String valor, String mensajeError) {
         if (valor == null || valor.trim().isEmpty()) {
             throw new IllegalArgumentException(mensajeError);
+        }
+    }
+
+    private void validarLimiteParaFormalizacion(Socio socio) {
+        long prestamosActivos = repositorioPrestamo.countBySocioIdSocioAndEstado(socio.getIdSocio(),
+                EstadoPrestamo.ACTIVO);
+        long bloqueosActivos = repositorioBloqueo.countActiveBloqueosBySocio(socio.getIdSocio(),
+                EstadoBloqueo.ACTIVO, new Date());
+
+        // Al formalizar, reduciremos 1 bloqueo y sumaremos 1 préstamo, así que el total
+        // (P+B) se mantiene igual.
+        // Sin embargo, si el usuario YA excede el límite (ej. se bajó el límite
+        // global), no debería poder formalizar.
+        // Opcional: Permitir la formalización si (P + B) <= Max, asumiendo que el
+        // bloqueo actual ya cuenta.
+        // Pero si (P + B) > Max, entonces bloqueamos.
+
+        if ((prestamosActivos + bloqueosActivos) > socio.getMaxPrestamosActivos()) {
+            throw new IllegalStateException(
+                    String.format(
+                            "No se puede formalizar el préstamo: Límite de lecturas activas excedido (%d). Actuales: %d",
+                            socio.getMaxPrestamosActivos(), (prestamosActivos + bloqueosActivos)));
         }
     }
 }

@@ -3,18 +3,10 @@ package com.biblioteca.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "LIBRO")
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Libro {
 
     @Id
@@ -48,6 +40,59 @@ public class Libro {
 
     @org.hibernate.annotations.Formula("(SELECT COUNT(*) FROM EJEMPLAR e WHERE e.ID_LIBRO = ID_LIBRO AND e.ESTADO = 'DISPONIBLE')")
     private Long disponibles;
+
+    // Constructores
+    public Libro() {
+    }
+
+    // Getters y Setters
+    public Long getIdLibro() {
+        return idLibro;
+    }
+
+    public void setIdLibro(Long idLibro) {
+        this.idLibro = idLibro;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
+
+    public void setIsbn(String isbn) {
+        this.isbn = isbn;
+    }
+
+    public String getTitulo() {
+        return titulo;
+    }
+
+    public void setTitulo(String titulo) {
+        this.titulo = titulo;
+    }
+
+    public String getAutor() {
+        return autor;
+    }
+
+    public void setAutor(String autor) {
+        this.autor = autor;
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public Integer getAnio() {
+        return anio;
+    }
+
+    public void setAnio(Integer anio) {
+        this.anio = anio;
+    }
 
     public Long getDisponibles() {
         return disponibles != null ? disponibles : 0L;

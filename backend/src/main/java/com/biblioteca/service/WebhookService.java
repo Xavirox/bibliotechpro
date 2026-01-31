@@ -3,7 +3,6 @@ package com.biblioteca.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -12,16 +11,15 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Map;
+import com.biblioteca.config.N8nProperties;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-@lombok.RequiredArgsConstructor
 public class WebhookService {
 
     private static final Logger LOG = LoggerFactory.getLogger(WebhookService.class);
 
-    @Value("${n8n.webhook.base-url:http://n8n:5678/webhook/}")
-    private String urlBaseN8n;
+    private final N8nProperties n8nProperties;
 
     private static final String ENDPOINT_DEVOLUCION_TARDE = "webhook-devolucion-tarde-v3";
     private static final String ENDPOINT_NUEVA_RESERVA = "webhook-nueva-reserva-v3";
@@ -31,6 +29,11 @@ public class WebhookService {
     private final HttpClient clienteHttp = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
             .build();
+
+    public WebhookService(ObjectMapper objectMapper, N8nProperties n8nProperties) {
+        this.objectMapper = objectMapper;
+        this.n8nProperties = n8nProperties;
+    }
 
     public void notificarDevolucionTardia(Map<String, Object> datos) {
         enviarAWebhook(datos, construirUrl(ENDPOINT_DEVOLUCION_TARDE));
@@ -55,7 +58,8 @@ public class WebhookService {
     }
 
     private String construirUrl(String endpoint) {
-        String base = urlBaseN8n.endsWith("/") ? urlBaseN8n : urlBaseN8n + "/";
+        String base = n8nProperties.getBaseUrl().endsWith("/") ? n8nProperties.getBaseUrl()
+                : n8nProperties.getBaseUrl() + "/";
         return base + endpoint;
     }
 
@@ -68,7 +72,7 @@ public class WebhookService {
                 }
 
                 String cuerpoJson = objectMapper.writeValueAsString(datos);
-                LOG.info("Enviando webhook a n8n: {}", urlDestino);
+                LOG.info("Enviando webhook a n8n: {} - Payload: {}", urlDestino, cuerpoJson);
 
                 HttpRequest solicitud = HttpRequest.newBuilder()
                         .uri(URI.create(urlDestino))
@@ -87,7 +91,7 @@ public class WebhookService {
                             }
                         })
                         .exceptionally(e -> {
-                            LOG.error("Error al conectar con n8n en {}: {}", urlDestino, e.getMessage());
+                            LOG.error("Error al conectar con n8n en {}: {}", urlDestino, e.getMessage(), e);
                             return null;
                         });
 

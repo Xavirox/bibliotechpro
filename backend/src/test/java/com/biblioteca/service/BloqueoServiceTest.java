@@ -268,6 +268,13 @@ class BloqueoServiceTest {
         bloqueo.setFechaFin(new Date(System.currentTimeMillis() + 86400000));
 
         when(bloqueoRepository.findById(1L)).thenReturn(Optional.of(bloqueo));
+
+        // Mock validation checks
+        socio.setMaxPrestamosActivos(5);
+        when(prestamoRepository.countBySocioIdSocioAndEstado(eq(1L), eq(EstadoPrestamo.ACTIVO))).thenReturn(0L);
+        when(bloqueoRepository.countActiveBloqueosBySocio(eq(1L), eq(EstadoBloqueo.ACTIVO), any(Date.class)))
+                .thenReturn(1L);
+
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(invocation -> {
             Prestamo p = invocation.getArgument(0);
             p.setIdPrestamo(1L);
@@ -301,6 +308,13 @@ class BloqueoServiceTest {
         bloqueo.setFechaFin(new Date(System.currentTimeMillis() + 86400000));
 
         when(bloqueoRepository.findById(1L)).thenReturn(Optional.of(bloqueo));
+
+        // Mock validation checks
+        socio.setMaxPrestamosActivos(5);
+        when(prestamoRepository.countBySocioIdSocioAndEstado(eq(1L), eq(EstadoPrestamo.ACTIVO))).thenReturn(0L);
+        when(bloqueoRepository.countActiveBloqueosBySocio(eq(1L), eq(EstadoBloqueo.ACTIVO), any(Date.class)))
+                .thenReturn(1L);
+
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(invocation -> {
             Prestamo p = invocation.getArgument(0);
             p.setIdPrestamo(1L);

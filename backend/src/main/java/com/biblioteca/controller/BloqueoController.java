@@ -4,7 +4,6 @@ import com.biblioteca.dto.BloqueoRequest;
 import com.biblioteca.model.Bloqueo;
 import com.biblioteca.model.Prestamo;
 import com.biblioteca.service.BloqueoService;
-import lombok.RequiredArgsConstructor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -19,10 +18,13 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/api/bloqueos")
 @Tag(name = "Bloqueos/Reservas", description = "API para gestión de reservas de libros")
-@RequiredArgsConstructor
 public class BloqueoController {
 
     private final BloqueoService servicioBloqueo;
+
+    public BloqueoController(BloqueoService servicioBloqueo) {
+        this.servicioBloqueo = servicioBloqueo;
+    }
 
     @PostMapping
     @Operation(summary = "Crear reserva", description = "Reserva un ejemplar por 24 horas")

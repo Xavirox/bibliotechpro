@@ -670,3 +670,85 @@
     color: var(--success);
     border-color: var(--success);
 }
+
+/* =========================================
+   PWA Components
+   ========================================= */
+
+#pwa-install-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 10000;
+    max-width: 90%;
+    animation: slide-up 0.5s ease-out;
+}
+
+.pwa-icon {
+    font-size: 1.5rem;
+}
+
+.pwa-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.pwa-title {
+    font-weight: 700;
+}
+
+.pwa-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+#pwa-install-btn {
+    background: white;
+    color: #6366F1;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#pwa-install-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+#pwa-dismiss-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+#pwa-dismiss-btn:hover {
+    opacity: 1;
+}
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}

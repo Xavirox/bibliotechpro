@@ -49,10 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Inicializar estado de autenticación (verifica cookies/localStorage)
         const isLoggedIn = initAuth();
 
-        // 2. Inicializar efectos visuales premium
+        // 2. Inicializar efectos visuales básicos (Solo tema, sin tilt/sonidos para versión Pro simple)
         initThemeToggle();   // Toggle de tema claro/oscuro
-        initTiltEffect();    // Efecto 3D en tarjetas de libros
-        initSoundEffects();  // Feedback sonoro y visual
+        // initTiltEffect();    // Efecto 3D deshabilitado por simplicidad
+        // initSoundEffects();  // Sonidos deshabilitados por simplicidad
 
         // 3. Mostrar vista apropiada según estado de autenticación
         if (isLoggedIn) {

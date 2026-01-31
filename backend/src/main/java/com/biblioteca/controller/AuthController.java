@@ -12,7 +12,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +22,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import com.biblioteca.config.AppCookieProperties;
 import java.time.Duration;
 
 /**
@@ -36,7 +36,6 @@ import java.time.Duration;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Autenticación", description = "API para autenticación de usuarios")
-@lombok.RequiredArgsConstructor
 public class AuthController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AuthController.class);
@@ -46,14 +45,18 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final SocioRepository repositorioSocio;
     private final JwtTokenProvider proveedorToken;
+    private final AppCookieProperties cookieProperties;
 
-    /**
-     * SEGURIDAD: Flag para forzar cookies seguras en producción.
-     * Por defecto es false para desarrollo local sin HTTPS.
-     * En producción, configurar app.cookie.secure=true
-     */
-    @Value("${app.cookie.secure:false}")
-    private boolean forzarCookieSegura;
+    public AuthController(
+            AuthenticationManager authenticationManager,
+            SocioRepository repositorioSocio,
+            JwtTokenProvider proveedorToken,
+            AppCookieProperties cookieProperties) {
+        this.authenticationManager = authenticationManager;
+        this.repositorioSocio = repositorioSocio;
+        this.proveedorToken = proveedorToken;
+        this.cookieProperties = cookieProperties;
+    }
 
     @PostMapping("/login")
     @Operation(summary = "Iniciar sesión", description = "Autentica al usuario y retorna un token JWT en cookie HttpOnly con SameSite=Strict")
@@ -95,7 +98,7 @@ public class AuthController {
     @Operation(summary = "Cerrar sesión", description = "Invalida la cookie JWT")
     public ResponseEntity<?> cerrarSesion(HttpServletRequest peticion, HttpServletResponse respuesta) {
         // Limpiar la cookie JWT usando ResponseCookie para soporte correcto de SameSite
-        boolean esSeguro = forzarCookieSegura || peticion.isSecure();
+        boolean esSeguro = cookieProperties.isSecure() || peticion.isSecure();
 
         ResponseCookie cookie = ResponseCookie.from(NOMBRE_COOKIE_JWT, "")
                 .httpOnly(true)
@@ -124,7 +127,7 @@ public class AuthController {
      */
     private void agregarCookieJwt(HttpServletResponse respuesta, String jwt, boolean peticionEsSegura) {
         // Secure flag: true si la request es HTTPS O si está forzado por config
-        boolean esSeguro = forzarCookieSegura || peticionEsSegura;
+        boolean esSeguro = cookieProperties.isSecure() || peticionEsSegura;
 
         // Usar ResponseCookie de Spring para soporte completo de SameSite
         ResponseCookie cookie = ResponseCookie.from(NOMBRE_COOKIE_JWT, jwt)

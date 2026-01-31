@@ -46,6 +46,8 @@ class PrestamoServiceTest {
     private WebhookService webhookService;
     @Mock
     private jakarta.persistence.EntityManager entityManager;
+    @Mock
+    private com.biblioteca.repository.BloqueoRepository bloqueoRepository;
 
     @InjectMocks
     private PrestamoService prestamoService;
