@@ -79,7 +79,8 @@ public class LibroService {
     public Page<LibroDTO> obtenerLibrosPaginados(int pagina, int tamanio, String categoria, String busqueda,
             Boolean excluirLeidos, String usuario) {
         Pageable paginacion = org.springframework.data.domain.PageRequest.of(pagina, tamanio,
-                org.springframework.data.domain.Sort.by("titulo").ascending());
+                org.springframework.data.domain.Sort.by("titulo").ascending()
+                        .and(org.springframework.data.domain.Sort.by("idLibro").ascending()));
 
         List<Long> idsExcluidos = (Boolean.TRUE.equals(excluirLeidos) && usuario != null)
                 ? obtenerIdsLibrosLeidos(usuario)
