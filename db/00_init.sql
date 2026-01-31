@@ -1,13 +1,6 @@
 -- ==========================================
--- SCRIPT MAESTRO DE INICIALIZACIÓN Y DATOS (GOLD MASTER v4 - ISBNs REALES & JOB)
+-- SCRIPT MAESTRO DE INICIALIZACIÓN (GOLD MASTER v5 - DEMO MASSIVE DATA)
 -- BiblioTech Pro - VPS Edition 
--- ==========================================
--- INCLUYE:
--- 1. Estructura Limpia
--- 2. Lógica PL/SQL Avanzada
--- 3. Triggers Obligatorios
--- 4. Job de Limpieza Automática
--- 5. DATOS SEMILLA RICOS (ISBNs reales para Portadas OpenLibrary)
 -- ==========================================
 
 ALTER SESSION SET CONTAINER=XEPDB1;
@@ -155,39 +148,93 @@ BEGIN
 END;
 /
 
--- 6. DATOS SEMILLA RICOS (ISBNs REALES)
+-- 6. DATOS MASIVOS (CARGA DEMO)
 -- =====================================
-INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('admin', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'ADMIN', 'Administrador', 'admin@bibliotech.com', 10);
-INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('biblio', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'BIBLIOTECARIO', 'Bibliotecario Jefe', 'biblio@bibliotech.com', 10);
-INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio1', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Juan Socio', 'juan@bibliotech.com', 3);
-INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('ana_p', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Ana Perez', 'ana@bibliotech.com', 3);
 
--- Libros Tecnicos (ISBNs reales para portadas)
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780134685991', 'Effective Java', 'Joshua Bloch', 'Tecnologia', 2018);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780132350884', 'Clean Code', 'Robert C. Martin', 'Tecnologia', 2008);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780201633610', 'Design Patterns', 'Erich Gamma', 'Tecnologia', 1994);
+-- ==== USUARIOS ====
+-- Password 'password'
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('admin', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'ADMIN', 'Super Admin', 'admin@bibliotech.com', 99);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('biblio', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'BIBLIOTECARIO', 'Maria Bibliotecaria', 'biblio@bibliotech.com', 99);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio1', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Juan Perez', 'juan@mail.com', 3);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio2', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Ana Gomez', 'ana@mail.com', 3);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio3', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Carlos Ruiz', 'carlos@mail.com', 5);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio4', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Laura Diaz', 'laura@mail.com', 3);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('invitado', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Visitante Demo', 'demo@mail.com', 1);
 
--- Ciencia Ficción / Fantasía
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780441013593', 'Dune', 'Frank Herbert', 'Ciencia Ficcion', 1965);
+-- ==== LIBROS (Con ISBNs reales para OpenLibrary) ====
+
+-- FANTASÍA & CIENCIA FICCIÓN
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780547928227', 'The Hobbit', 'J.R.R. Tolkien', 'Fantasia', 1937);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780345391803', 'The Hitchhikers Guide to the Galaxy', 'Douglas Adams', 'Ciencia Ficcion', 1979);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780261102385', 'The Lord of the Rings', 'J.R.R. Tolkien', 'Fantasia', 1954);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780439554930', 'Harry Potter and the Sorcerers Stone', 'J.K. Rowling', 'Fantasia', 1997);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780441013593', 'Dune', 'Frank Herbert', 'Ciencia Ficcion', 1965);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780553293357', 'Foundation', 'Isaac Asimov', 'Ciencia Ficcion', 1951);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780345391803', 'The Hitchhikers Guide to the Galaxy', 'Douglas Adams', 'Ciencia Ficcion', 1979);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780765301515', 'Ender''s Game', 'Orson Scott Card', 'Ciencia Ficcion', 1985);
 
--- Clásicos / Novela
+-- NOVELA & CLÁSICOS
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780451524935', '1984', 'George Orwell', 'Novela', 1949);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780141439518', 'Pride and Prejudice', 'Jane Austen', 'Clasicos', 1813);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780743273565', 'The Great Gatsby', 'F. Scott Fitzgerald', 'Novela', 1925);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307474278', 'The Da Vinci Code', 'Dan Brown', 'Novela', 2003);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780061120084', 'To Kill a Mockingbird', 'Harper Lee', 'Clasicos', 1960);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780140449136', 'Crime and Punishment', 'Fyodor Dostoevsky', 'Clasicos', 1866);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307387899', 'The Road', 'Cormac McCarthy', 'Novela', 2006);
 
--- Ejemplares (2 copias por libro clave)
-INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION) VALUES ((SELECT ID_LIBRO FROM biblioteca.LIBRO WHERE ISBN='9780134685991'), 'EJ-JAVA-1', 'DISPONIBLE', 'Estanteria A1');
-INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION) VALUES ((SELECT ID_LIBRO FROM biblioteca.LIBRO WHERE ISBN='9780134685991'), 'EJ-JAVA-2', 'DISPONIBLE', 'Estanteria A1');
-INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION) VALUES ((SELECT ID_LIBRO FROM biblioteca.LIBRO WHERE ISBN='9780132350884'), 'EJ-CLEAN-1', 'DISPONIBLE', 'Estanteria A2');
-INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION) VALUES ((SELECT ID_LIBRO FROM biblioteca.LIBRO WHERE ISBN='9780441013593'), 'EJ-DUNE-1', 'DISPONIBLE', 'Estanteria B1');
-INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION) VALUES ((SELECT ID_LIBRO FROM biblioteca.LIBRO WHERE ISBN='9780441013593'), 'EJ-DUNE-2', 'DISPONIBLE', 'Estanteria B1');
-INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION) VALUES ((SELECT ID_LIBRO FROM biblioteca.LIBRO WHERE ISBN='9780547928227'), 'EJ-HOBBIT-1', 'DISPONIBLE', 'Estanteria B2');
-INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION) VALUES ((SELECT ID_LIBRO FROM biblioteca.LIBRO WHERE ISBN='9780451524935'), 'EJ-1984-1', 'DISPONIBLE', 'Estanteria C1');
+-- TECNOLOGÍA
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780134685991', 'Effective Java', 'Joshua Bloch', 'Tecnologia', 2018);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780132350884', 'Clean Code', 'Robert C. Martin', 'Tecnologia', 2008);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780201633610', 'Design Patterns', 'Erich Gamma', 'Tecnologia', 1994);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781449331818', 'Learning Python', 'Mark Lutz', 'Tecnologia', 2013);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780131103627', 'The C Programming Language', 'Brian Kernighan', 'Tecnologia', 1978);
+
+-- TERROR / THRILLER
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781501142970', 'It', 'Stephen King', 'Terror', 1986);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307743657', 'The Shining', 'Stephen King', 'Terror', 1977);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781250030955', 'The Silence of the Lambs', 'Thomas Harris', 'Thriller', 1988);
+
+-- HISTORIA / BIOGRAFÍA
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781400064168', 'Sapiens', 'Yuval Noah Harari', 'Historia', 2011);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781501127625', 'Steve Jobs', 'Walter Isaacson', 'Biografia', 2011);
+
+-- ==== EJEMPLARES (Generación Masiva) ====
+
+BEGIN
+    -- Generar 3 copias para todos los libros
+    FOR b IN (SELECT ID_LIBRO, ISBN FROM biblioteca.LIBRO) LOOP
+        FOR i IN 1..3 LOOP
+            INSERT INTO biblioteca.EJEMPLAR (ID_LIBRO, CODIGO_BARRAS, ESTADO, UBICACION)
+            VALUES (b.ID_LIBRO, 'EJ-' || SUBSTR(b.ISBN, -6) || '-' || i, 'DISPONIBLE', 'Estanteria ' || MOD(b.ID_LIBRO, 5));
+        END LOOP;
+    END LOOP;
+END;
+/
+
+-- Ajustes manuales para Demo (Algunos prestados, algunos reservados)
+
+
+
+-- Insertar Historico de Prestamos (Para graficas)
+INSERT INTO biblioteca.PRESTAMO (ID_SOCIO, ID_EJEMPLAR, FECHA_PRESTAMO, FECHA_PREVISTA_DEVOLUCION, FECHA_DEVOLUCION_REAL, ESTADO)
+VALUES ((SELECT ID_SOCIO FROM biblioteca.SOCIO WHERE USUARIO='socio1'), (SELECT ID_EJEMPLAR FROM biblioteca.EJEMPLAR WHERE CODIGO_BARRAS LIKE '%4930-1'), SYSDATE - 30, SYSDATE - 15, SYSDATE - 16, 'DEVUELTO');
+
+INSERT INTO biblioteca.PRESTAMO (ID_SOCIO, ID_EJEMPLAR, FECHA_PRESTAMO, FECHA_PREVISTA_DEVOLUCION, FECHA_DEVOLUCION_REAL, ESTADO)
+VALUES ((SELECT ID_SOCIO FROM biblioteca.SOCIO WHERE USUARIO='socio2'), (SELECT ID_EJEMPLAR FROM biblioteca.EJEMPLAR WHERE CODIGO_BARRAS LIKE '%4930-3'), SYSDATE - 6, SYSDATE + 9, NULL, 'ACTIVO');
+
+-- Activar el préstamo actual de Harry Potter 1 (que marcamos como prestado arriba)
+INSERT INTO biblioteca.PRESTAMO (ID_SOCIO, ID_EJEMPLAR, FECHA_PRESTAMO, FECHA_PREVISTA_DEVOLUCION, ESTADO)
+VALUES ((SELECT ID_SOCIO FROM biblioteca.SOCIO WHERE USUARIO='socio3'), (SELECT ID_EJEMPLAR FROM biblioteca.EJEMPLAR WHERE CODIGO_BARRAS LIKE '%4930-1'), SYSDATE - 2, SYSDATE + 13, 'ACTIVO');
+
+-- Crear el bloqueo activo para Clean Code
+INSERT INTO biblioteca.BLOQUEO (ID_SOCIO, ID_EJEMPLAR, FECHA_INICIO, FECHA_FIN, ESTADO)
+VALUES ((SELECT ID_SOCIO FROM biblioteca.SOCIO WHERE USUARIO='socio1'), (SELECT ID_EJEMPLAR FROM biblioteca.EJEMPLAR WHERE CODIGO_BARRAS LIKE '%0884-1'), SYSDATE, SYSDATE + 1, 'ACTIVO');
+
+-- Prestamos Extra
+INSERT INTO biblioteca.PRESTAMO (ID_SOCIO, ID_EJEMPLAR, FECHA_PRESTAMO, FECHA_PREVISTA_DEVOLUCION, ESTADO)
+VALUES ((SELECT ID_SOCIO FROM biblioteca.SOCIO WHERE USUARIO='biblio'), (SELECT ID_EJEMPLAR FROM biblioteca.EJEMPLAR WHERE CODIGO_BARRAS LIKE '%4930-2'), SYSDATE - 1, SYSDATE + 14, 'ACTIVO');
+
+INSERT INTO biblioteca.PRESTAMO (ID_SOCIO, ID_EJEMPLAR, FECHA_PRESTAMO, FECHA_PREVISTA_DEVOLUCION, ESTADO)
+VALUES ((SELECT ID_SOCIO FROM biblioteca.SOCIO WHERE USUARIO='socio4'), (SELECT ID_EJEMPLAR FROM biblioteca.EJEMPLAR WHERE CODIGO_BARRAS LIKE '%1515-1'), SYSDATE - 5, SYSDATE + 10, 'ACTIVO');
 
 COMMIT;
 EXIT;
