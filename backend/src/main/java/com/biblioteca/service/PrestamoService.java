@@ -7,6 +7,7 @@ import com.biblioteca.model.EstadoEjemplar;
 import com.biblioteca.model.EstadoPrestamo;
 import com.biblioteca.model.Prestamo;
 import com.biblioteca.model.Socio;
+import com.biblioteca.config.LibraryPolicyProperties;
 import com.biblioteca.repository.BloqueoRepository;
 import com.biblioteca.repository.PrestamoRepository;
 
@@ -28,15 +29,15 @@ import java.util.Objects;
 public class PrestamoService {
 
     private static final Logger LOG = LoggerFactory.getLogger(PrestamoService.class);
-    private static final long DIAS_DURACION_PRESTAMO = 15L;
 
     private final PrestamoRepository repositorioPrestamo;
     private final BloqueoRepository repositorioBloqueo;
     private final SocioService servicioSocio;
     private final EjemplarService servicioEjemplar;
     private final ApplicationEventPublisher publicadorEventos;
-    private final WebhookService servicioWebhook;
+    private final NotificationService servicioNotificaciones;
     private final EntityManager gestorEntidades;
+    private final LibraryPolicyProperties libraryPolicy;
 
     public PrestamoService(
             PrestamoRepository repositorioPrestamo,
@@ -44,15 +45,17 @@ public class PrestamoService {
             SocioService servicioSocio,
             EjemplarService servicioEjemplar,
             ApplicationEventPublisher publicadorEventos,
-            WebhookService servicioWebhook,
-            EntityManager gestorEntidades) {
+            NotificationService servicioNotificaciones,
+            EntityManager gestorEntidades,
+            LibraryPolicyProperties libraryPolicy) {
         this.repositorioPrestamo = repositorioPrestamo;
         this.repositorioBloqueo = repositorioBloqueo;
         this.servicioSocio = servicioSocio;
         this.servicioEjemplar = servicioEjemplar;
         this.publicadorEventos = publicadorEventos;
-        this.servicioWebhook = servicioWebhook;
+        this.servicioNotificaciones = servicioNotificaciones;
         this.gestorEntidades = gestorEntidades;
+        this.libraryPolicy = libraryPolicy;
     }
 
     /**
@@ -152,7 +155,7 @@ public class PrestamoService {
                 ejemplar,
                 EstadoPrestamo.ACTIVO,
                 new Date(),
-                Date.from(Instant.now().plus(DIAS_DURACION_PRESTAMO, ChronoUnit.DAYS)));
+                Date.from(Instant.now().plus(libraryPolicy.getPrestamoDias(), ChronoUnit.DAYS)));
     }
 
     private Prestamo persistirYNotificarPrestamo(Prestamo prestamo) {
@@ -169,7 +172,7 @@ public class PrestamoService {
             gestorEntidades.flush();
             gestorEntidades.refresh(prestamoPersistido);
 
-            servicioWebhook.notificarNuevoPrestamo(
+            servicioNotificaciones.notificarNuevoPrestamo(
                     prestamo.getSocio().getNombre(),
                     prestamo.getEjemplar().getLibro().getTitulo());
 

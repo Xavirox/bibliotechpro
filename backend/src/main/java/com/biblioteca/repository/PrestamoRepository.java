@@ -10,7 +10,7 @@ import java.util.List;
 public interface PrestamoRepository extends JpaRepository<Prestamo, Long> {
     List<Prestamo> findBySocioIdSocio(Long idSocio);
 
-    long countBySocioIdSocioAndEstado(Long idSocio, EstadoPrestamo estado);
+    Long countBySocioIdSocioAndEstado(Long idSocio, EstadoPrestamo estado);
 
     // Optimized validation queries
     boolean existsBySocioIdSocioAndEjemplarLibroIdLibroAndEstado(Long idSocio, Long idLibro, EstadoPrestamo estado);

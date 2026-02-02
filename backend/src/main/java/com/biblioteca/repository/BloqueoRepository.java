@@ -21,7 +21,7 @@ public interface BloqueoRepository extends JpaRepository<Bloqueo, Long> {
                         @Param("now") java.util.Date now);
 
         @Query("SELECT COUNT(b) FROM Bloqueo b WHERE b.socio.idSocio = :idSocio AND b.estado = :estado AND b.fechaFin > :now")
-        long countActiveBloqueosBySocio(@Param("idSocio") Long idSocio, @Param("estado") EstadoBloqueo estado,
+        Long countActiveBloqueosBySocio(@Param("idSocio") Long idSocio, @Param("estado") EstadoBloqueo estado,
                         @Param("now") java.util.Date now);
 
         @Query("SELECT b FROM Bloqueo b JOIN FETCH b.ejemplar e JOIN FETCH e.libro JOIN FETCH b.socio WHERE b.socio.idSocio = :idSocio AND b.estado = :estado AND b.fechaFin > :now")

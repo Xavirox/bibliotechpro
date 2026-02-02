@@ -153,8 +153,8 @@ END;
 
 -- ==== USUARIOS ====
 -- Password 'password'
-INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('admin', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'ADMIN', 'Super Admin', 'admin@bibliotech.com', 99);
-INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('biblio', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'BIBLIOTECARIO', 'Maria Bibliotecaria', 'biblio@bibliotech.com', 99);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('admin', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'ADMIN', 'Super Admin', 'admin@bibliotech.com', 10);
+INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('biblio', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'BIBLIOTECARIO', 'Maria Bibliotecaria', 'biblio@bibliotech.com', 10);
 INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio1', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Juan Perez', 'juan@mail.com', 3);
 INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio2', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Ana Gomez', 'ana@mail.com', 3);
 INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PRESTAMOS_ACTIVOS) VALUES ('socio3', '$2a$10$BA0QvPo6W1sgf2kx7g9C/ulfV.CI8lmDJ/HJczwPrEtOPPAwsePdW', 'SOCIO', 'Carlos Ruiz', 'carlos@mail.com', 5);
@@ -163,39 +163,63 @@ INSERT INTO biblioteca.SOCIO (USUARIO, PASSWORD_HASH, ROL, NOMBRE, EMAIL, MAX_PR
 
 -- ==== LIBROS (Con ISBNs reales para OpenLibrary) ====
 
--- FANTASÍA & CIENCIA FICCIÓN
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780547928227', 'The Hobbit', 'J.R.R. Tolkien', 'Fantasia', 1937);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780261102385', 'The Lord of the Rings', 'J.R.R. Tolkien', 'Fantasia', 1954);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780439554930', 'Harry Potter and the Sorcerers Stone', 'J.K. Rowling', 'Fantasia', 1997);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780441013593', 'Dune', 'Frank Herbert', 'Ciencia Ficcion', 1965);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780553293357', 'Foundation', 'Isaac Asimov', 'Ciencia Ficcion', 1951);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780345391803', 'The Hitchhikers Guide to the Galaxy', 'Douglas Adams', 'Ciencia Ficcion', 1979);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780765301515', 'Ender''s Game', 'Orson Scott Card', 'Ciencia Ficcion', 1985);
+-- FANTASÍA (Frontend: Fantasía)
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780547928227', 'The Hobbit', 'J.R.R. Tolkien', 'Fantasía', 1937);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780261102385', 'The Lord of the Rings', 'J.R.R. Tolkien', 'Fantasía', 1954);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780439554930', 'Harry Potter and the Sorcerers Stone', 'J.K. Rowling', 'Fantasía', 1997);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780553109535', 'A Game of Thrones', 'George R.R. Martin', 'Fantasía', 1996);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780756404079', 'The Name of the Wind', 'Patrick Rothfuss', 'Fantasía', 2007);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780062059880', 'American Gods', 'Neil Gaiman', 'Fantasía', 2001);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780345339683', 'The Silmarillion', 'J.R.R. Tolkien', 'Fantasía', 1977);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780143111555', 'The Magicians', 'Lev Grossman', 'Fantasía', 2009);
 
--- NOVELA & CLÁSICOS
+-- CIENCIA FICCIÓN (Frontend: Ciencia Ficción)
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780441013593', 'Dune', 'Frank Herbert', 'Ciencia Ficción', 1965);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780553293357', 'Foundation', 'Isaac Asimov', 'Ciencia Ficción', 1951);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780345391803', 'The Hitchhikers Guide to the Galaxy', 'Douglas Adams', 'Ciencia Ficción', 1979);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780765301515', 'Enders Game', 'Orson Scott Card', 'Ciencia Ficción', 1985);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780441569595', 'Neuromancer', 'William Gibson', 'Ciencia Ficción', 1984);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780553382563', 'I, Robot', 'Isaac Asimov', 'Ciencia Ficción', 1950);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307292063', 'The Martian', 'Andy Weir', 'Ciencia Ficción', 2011);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780451526342', 'The Time Machine', 'H.G. Wells', 'Ciencia Ficción', 1895);
+
+-- NOVELA (Frontend: Novela)
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780451524935', '1984', 'George Orwell', 'Novela', 1949);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780141439518', 'Pride and Prejudice', 'Jane Austen', 'Clasicos', 1813);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780743273565', 'The Great Gatsby', 'F. Scott Fitzgerald', 'Novela', 1925);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307474278', 'The Da Vinci Code', 'Dan Brown', 'Novela', 2003);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780061120084', 'To Kill a Mockingbird', 'Harper Lee', 'Clasicos', 1960);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780140449136', 'Crime and Punishment', 'Fyodor Dostoevsky', 'Clasicos', 1866);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780345806789', 'The Shining Girls', 'Lauren Beukes', 'Novela', 2013);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781400033416', 'Beloved', 'Toni Morrison', 'Novela', 1987);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307277671', 'The Brief Wondrous Life of Oscar Wao', 'Junot Diaz', 'Novela', 2007);
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307387899', 'The Road', 'Cormac McCarthy', 'Novela', 2006);
 
--- TECNOLOGÍA
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780134685991', 'Effective Java', 'Joshua Bloch', 'Tecnologia', 2018);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780132350884', 'Clean Code', 'Robert C. Martin', 'Tecnologia', 2008);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780201633610', 'Design Patterns', 'Erich Gamma', 'Tecnologia', 1994);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781449331818', 'Learning Python', 'Mark Lutz', 'Tecnologia', 2013);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780131103627', 'The C Programming Language', 'Brian Kernighan', 'Tecnologia', 1978);
+-- CLÁSICOS (Frontend has no explicit filter usually, mapped to Novela or distinct?)
+-- Frontend filter has: Novela, Ciencia Ficción, Fantasía, Biografía, Historia, Tecnología.
+-- We will map Clasicos to Novela for better UX in this specific frontend, or keep as Clasicos if "Todas" is used.
+-- Let's use 'Novela' for these to populate that category more, or 'Historia' if appropriate.
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780141439518', 'Pride and Prejudice', 'Jane Austen', 'Novela', 1813); 
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780061120084', 'To Kill a Mockingbird', 'Harper Lee', 'Novela', 1960);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780140449136', 'Crime and Punishment', 'Fyodor Dostoevsky', 'Novela', 1866);
 
--- TERROR / THRILLER
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781501142970', 'It', 'Stephen King', 'Terror', 1986);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780307743657', 'The Shining', 'Stephen King', 'Terror', 1977);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781250030955', 'The Silence of the Lambs', 'Thomas Harris', 'Thriller', 1988);
+-- TECNOLOGÍA (Frontend: Tecnología)
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780134685991', 'Effective Java', 'Joshua Bloch', 'Tecnología', 2018);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780132350884', 'Clean Code', 'Robert C. Martin', 'Tecnología', 2008);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780201633610', 'Design Patterns', 'Erich Gamma', 'Tecnología', 1994);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781449331818', 'Learning Python', 'Mark Lutz', 'Tecnología', 2013);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780131103627', 'The C Programming Language', 'Brian Kernighan', 'Tecnología', 1978);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780321125217', 'Domain-Driven Design', 'Eric Evans', 'Tecnología', 2003);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781491950357', 'Building Microservices', 'Sam Newman', 'Tecnología', 2015);
 
--- HISTORIA / BIOGRAFÍA
+-- HISTORIA (Frontend: Historia)
 INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781400064168', 'Sapiens', 'Yuval Noah Harari', 'Historia', 2011);
-INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781501127625', 'Steve Jobs', 'Walter Isaacson', 'Biografia', 2011);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780141032009', 'Guns, Germs, and Steel', 'Jared Diamond', 'Historia', 1997);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780140280197', 'The 48 Laws of Power', 'Robert Greene', 'Historia', 1998);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780679603348', 'The Histories', 'Herodotus', 'Historia', -440);
+
+-- BIOGRAFÍA (Frontend: Biografía)
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781501127625', 'Steve Jobs', 'Walter Isaacson', 'Biografía', 2011);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780553381696', 'A Brief History of Time', 'Stephen Hawking', 'Biografía', 1988);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9781101911860', 'Elon Musk', 'Ashlee Vance', 'Biografía', 2015);
+INSERT INTO biblioteca.LIBRO (ISBN, TITULO, AUTOR, CATEGORIA, ANIO) VALUES ('9780425287521', 'Shoe Dog', 'Phil Knight', 'Biografía', 2016);
 
 -- ==== EJEMPLARES (Generación Masiva) ====
 

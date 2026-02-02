@@ -1,7 +1,7 @@
 package com.biblioteca.controller;
 
 import com.biblioteca.dto.RecomendacionDTO;
-import com.biblioteca.service.GeminiService;
+import com.biblioteca.service.AIGenerationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
@@ -19,9 +19,9 @@ import java.util.List;
 public class RecomendacionController {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecomendacionController.class);
-    private final GeminiService servicioIA;
+    private final AIGenerationService servicioIA;
 
-    public RecomendacionController(GeminiService servicioIA) {
+    public RecomendacionController(AIGenerationService servicioIA) {
         this.servicioIA = servicioIA;
     }
 

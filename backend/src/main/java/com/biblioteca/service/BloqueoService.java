@@ -1,5 +1,6 @@
 package com.biblioteca.service;
 
+import com.biblioteca.config.LibraryPolicyProperties;
 import com.biblioteca.model.EstadoBloqueo;
 import com.biblioteca.model.EstadoEjemplar;
 import com.biblioteca.model.EstadoPrestamo;
@@ -31,22 +32,25 @@ public class BloqueoService {
     private final SocioService servicioSocio;
     private final EjemplarService servicioEjemplar;
     private final PrestamoRepository repositorioPrestamo;
-    private final WebhookService servicioWebhook;
+    private final NotificationService servicioNotificaciones;
     private final EntityManager gestorEntidades;
+    private final LibraryPolicyProperties libraryPolicy;
 
     public BloqueoService(
             BloqueoRepository repositorioBloqueo,
             SocioService servicioSocio,
             EjemplarService servicioEjemplar,
             PrestamoRepository repositorioPrestamo,
-            WebhookService servicioWebhook,
-            EntityManager gestorEntidades) {
+            NotificationService servicioNotificaciones,
+            EntityManager gestorEntidades,
+            LibraryPolicyProperties libraryPolicy) {
         this.repositorioBloqueo = repositorioBloqueo;
         this.servicioSocio = servicioSocio;
         this.servicioEjemplar = servicioEjemplar;
         this.repositorioPrestamo = repositorioPrestamo;
-        this.servicioWebhook = servicioWebhook;
+        this.servicioNotificaciones = servicioNotificaciones;
         this.gestorEntidades = gestorEntidades;
+        this.libraryPolicy = libraryPolicy;
     }
 
     /**
@@ -161,19 +165,29 @@ public class BloqueoService {
             throw new IllegalStateException("El ejemplar no está disponible (Estado: " + ejemplar.getEstado() + ")");
         }
 
-        long reservasActivas = repositorioBloqueo.countActiveBloqueosBySocio(socio.getIdSocio(), EstadoBloqueo.ACTIVO,
+        Long reservasActivasObj = repositorioBloqueo.countActiveBloqueosBySocio(socio.getIdSocio(),
+                EstadoBloqueo.ACTIVO,
                 new Date());
-        if (reservasActivas > 0) {
-            throw new IllegalStateException("El usuario ya tiene una reserva activa. Máximo permitido: 1.");
+        long reservasActivas = (reservasActivasObj != null) ? reservasActivasObj : 0L;
+
+        Long prestamosActivosObj = repositorioPrestamo.countBySocioIdSocioAndEstado(socio.getIdSocio(),
+                EstadoPrestamo.ACTIVO);
+        long prestamosActivos = (prestamosActivosObj != null) ? prestamosActivosObj : 0L;
+
+        // Anti-Gravity Fix: Prevent NPE if maxPrestamosActivos is null in legacy users
+        Integer maxPrestamos = socio.getMaxPrestamosActivos();
+        if (maxPrestamos == null) {
+            LOG.warn("Usuario {} tiene maxPrestamosActivos NULL. Usando defecto 2.", socio.getUsuario());
+            maxPrestamos = 2; // Default safe limit
         }
 
-        long prestamosActivos = repositorioPrestamo.countBySocioIdSocioAndEstado(socio.getIdSocio(),
-                EstadoPrestamo.ACTIVO);
+        LOG.info("Validando reserva: User={}, Max={}, Prestamos={}, Reservas={}",
+                socio.getUsuario(), maxPrestamos, prestamosActivos, reservasActivas);
 
-        if ((reservasActivas + prestamosActivos) >= socio.getMaxPrestamosActivos()) {
+        if ((reservasActivas + prestamosActivos) >= maxPrestamos) {
             throw new IllegalStateException(
                     String.format("Límite de lecturas activas alcanzado (%d). Préstamos: %d, Reservas: %d",
-                            socio.getMaxPrestamosActivos(), prestamosActivos, reservasActivas));
+                            maxPrestamos, prestamosActivos, reservasActivas));
         }
     }
 
@@ -188,7 +202,7 @@ public class BloqueoService {
                 socio,
                 ejemplar,
                 new Date(),
-                Date.from(Instant.now().plus(1, ChronoUnit.DAYS)),
+                Date.from(Instant.now().plus(libraryPolicy.getReservaHoras(), ChronoUnit.HOURS)),
                 EstadoBloqueo.ACTIVO);
     }
 
@@ -205,7 +219,8 @@ public class BloqueoService {
             gestorEntidades.refresh(bloqueoPersistido);
 
             try {
-                servicioWebhook.notificarNuevaReserva(socio.getUsuario(), bloqueo.getEjemplar().getLibro().getTitulo());
+                servicioNotificaciones.notificarNuevaReserva(socio.getUsuario(),
+                        bloqueo.getEjemplar().getLibro().getTitulo());
             } catch (Exception e) {
                 LOG.error("Fallo al enviar notificación de webhook, pero el bloqueo continúa: {}", e.getMessage());
             }
@@ -233,7 +248,8 @@ public class BloqueoService {
         prestamo.setSocio(bloqueo.getSocio());
         prestamo.setEjemplar(bloqueo.getEjemplar());
         prestamo.setFechaPrestamo(new Date());
-        prestamo.setFechaPrevistaDevolucion(Date.from(Instant.now().plus(15, ChronoUnit.DAYS)));
+        prestamo.setFechaPrevistaDevolucion(
+                Date.from(Instant.now().plus(libraryPolicy.getPrestamoDias(), ChronoUnit.DAYS)));
         prestamo.setEstado(EstadoPrestamo.ACTIVO);
         prestamo.setBloqueo(bloqueo);
 

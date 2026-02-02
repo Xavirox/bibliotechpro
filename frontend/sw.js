@@ -4,8 +4,8 @@
  * OPTIMIZADO: v2.1.0 - Mejor gestión de caché y rendimiento
  */
 
-const CACHE_NAME = 'bibliotech-pro-v2.1.0';
-const RUNTIME_CACHE = 'bibliotech-runtime-v2.1';
+const CACHE_NAME = 'bibliotech-pro-v2.2.0';
+const RUNTIME_CACHE = 'bibliotech-runtime-v2.2';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [

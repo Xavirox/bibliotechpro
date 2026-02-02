@@ -74,6 +74,9 @@ async def obtener_recomendaciones(solicitud: SolicitudRecomendacion):
         historial_json = json.dumps([l.dict() for l in solicitud.historial], ensure_ascii=False)
         catalogo_json = json.dumps([l.dict() for l in solicitud.catalogo], ensure_ascii=False)
         
+        AI_TEMPERATURE = float(os.getenv("AI_TEMPERATURE", "0.3"))
+        AI_MAX_RECS = int(os.getenv("AI_MAX_RECS", "5"))
+
         prompt = f"""
 Eres un bibliotecario experto con décadas de experiencia curando lecturas personalizadas. Tu objetivo es recomendar la próxima lectura ideal basándote SOLO en los patrones de lectura previos y el catálogo disponible.
 
@@ -85,7 +88,7 @@ INSTRUCCIONES CRÍTICAS:
 2. Busca coincidencias en el [CATALOGO_DISPONIBLE] que encajen con estos patrones.
 3. NO inventes libros. Solo recomienda libros que existan EXACTAMENTE en el catálogo.
 4. NO uses datos personales. El usuario es anónimo.
-5. Selecciona un MÁXIMO de 5 recomendaciones.
+5. Selecciona un MÁXIMO de {AI_MAX_RECS} recomendaciones.
 6. Tu respuesta debe ser EXCLUSIVAMENTE un objeto JSON válido, sin texto antes ni después.
 
 FORMATO DE RESPUESTA (JSON Schema):
@@ -109,7 +112,7 @@ FORMATO DE RESPUESTA (JSON Schema):
         
         # Configurar generación para respuesta JSON
         configuracion = types.GenerateContentConfig(
-            temperature=0.3,
+            temperature=AI_TEMPERATURE,
             response_mime_type="application/json",
             response_schema=RespuestaRecomendacion
         )

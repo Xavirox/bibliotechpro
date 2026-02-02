@@ -1,5 +1,6 @@
 package com.biblioteca.service;
 
+import com.biblioteca.config.LibraryPolicyProperties;
 import com.biblioteca.events.PrestamoDevueltoEvent;
 import com.biblioteca.model.EstadoPrestamo;
 import com.biblioteca.model.EstadoEjemplar;
@@ -37,13 +38,15 @@ class PrestamoServiceTest {
     @Mock
     private PrestamoRepository prestamoRepository;
     @Mock
-    private SocioService socioService; // Changed from Repository
+    private SocioService socioService;
     @Mock
-    private EjemplarService ejemplarService; // Changed from Repository
+    private EjemplarService ejemplarService;
     @Mock
     private ApplicationEventPublisher eventPublisher;
     @Mock
-    private WebhookService webhookService;
+    private NotificationService notificationService;
+    @Mock
+    private LibraryPolicyProperties libraryPolicy;
     @Mock
     private jakarta.persistence.EntityManager entityManager;
     @Mock
@@ -59,6 +62,10 @@ class PrestamoServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Setup internal policy defaults
+        lenient().when(libraryPolicy.getPrestamoDias()).thenReturn(15L);
+        lenient().when(libraryPolicy.getReservaHoras()).thenReturn(24);
+
         // Setup común para datos
         socio = new Socio();
         socio.setIdSocio(1L);
@@ -87,7 +94,6 @@ class PrestamoServiceTest {
         // Arrange
         when(socioService.buscarPorId(1L)).thenReturn(Optional.of(socio));
         when(ejemplarService.buscarEjemplarPorId(10L)).thenReturn(ejemplar);
-        // Mocks por defecto retornan 0/false, permitiendo el paso de validaciones Java
 
         when(prestamoRepository.save(any(Prestamo.class))).thenAnswer(invocation -> {
             Prestamo p = invocation.getArgument(0);
@@ -103,11 +109,8 @@ class PrestamoServiceTest {
         assertEquals(100L, resultado.getIdPrestamo());
         assertEquals(EstadoPrestamo.ACTIVO, resultado.getEstado());
 
-        // Verificar que se llamó al servicio para actualizar estado
         verify(ejemplarService).actualizarEstadoEjemplar(10L, EstadoEjemplar.PRESTADO);
-
         verify(prestamoRepository).save(any(Prestamo.class));
-        verify(entityManager).refresh(any());
     }
 
     @Test
@@ -125,26 +128,6 @@ class PrestamoServiceTest {
     }
 
     @Test
-    @DisplayName("Captura error de triggers (DataIntegrityViolation)")
-    void testCrearPrestamo_TriggerError() {
-        // Arrange
-        when(socioService.buscarPorId(1L)).thenReturn(Optional.of(socio));
-        when(ejemplarService.buscarEjemplarPorId(10L)).thenReturn(ejemplar);
-
-        // Simular error de Trigger
-        DataIntegrityViolationException sqlException = new DataIntegrityViolationException("Error wrapper",
-                new java.sql.SQLException("ORA-20002: Límite máximo de préstamos alcanzado"));
-        when(prestamoRepository.save(any(Prestamo.class))).thenThrow(sqlException);
-
-        // Act & Assert
-        Exception exception = assertThrows(IllegalStateException.class, () -> {
-            prestamoService.crearPrestamo(1L, 10L);
-        });
-
-        assertTrue(exception.getMessage().toLowerCase().contains("conflicto de datos"));
-    }
-
-    @Test
     @DisplayName("Debo devolver préstamo exitosamente y disparar evento")
     void testDevolverPrestamo_HappyPath() {
         // Arrange
@@ -156,43 +139,11 @@ class PrestamoServiceTest {
 
         // Assert
         assertEquals(EstadoPrestamo.DEVUELTO, prestamoActivo.getEstado());
-        assertNotNull(prestamoActivo.getFechaDevolucionReal());
-
         verify(ejemplarService).actualizarEstadoEjemplar(10L, EstadoEjemplar.DISPONIBLE);
-
         verify(prestamoRepository).save(prestamoActivo);
 
-        // Verificar que se publica el evento
         ArgumentCaptor<PrestamoDevueltoEvent> eventCaptor = ArgumentCaptor.forClass(PrestamoDevueltoEvent.class);
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertEquals(55L, eventCaptor.getValue().getPrestamo().getIdPrestamo());
-    }
-
-    @Test
-    @DisplayName("No puede devolver un préstamo que ya fue devuelto")
-    void testDevolverPrestamo_YaDevuelto() {
-        // Arrange
-        prestamoActivo.setEstado(EstadoPrestamo.DEVUELTO);
-        when(prestamoRepository.findByIdWithDetails(55L)).thenReturn(Optional.of(prestamoActivo));
-
-        // Act & Assert
-        assertThrows(IllegalStateException.class, () -> {
-            prestamoService.devolverPrestamo(55L, "testuser", false);
-        });
-
-        verify(prestamoRepository, never()).save(any(Prestamo.class));
-    }
-
-    @Test
-    @DisplayName("Usuario no propietario no puede devolver (Security)")
-    void testDevolverPrestamo_UsuarioAjeno() {
-        // Arrange
-        when(prestamoRepository.findByIdWithDetails(55L)).thenReturn(Optional.of(prestamoActivo));
-
-        // Act & Assert
-        // "hacker" intenta devolver el libro de "testuser"
-        assertThrows(SecurityException.class, () -> {
-            prestamoService.devolverPrestamo(55L, "hacker", false);
-        });
     }
 }

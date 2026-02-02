@@ -19,6 +19,7 @@
 
 import { API_URL } from './config.js';
 import { showToast } from './utils.js';
+import { fetchWithAuth } from './api.js';
 
 // ============================================
 // ESTADO GLOBAL DE AUTENTICACIÓN

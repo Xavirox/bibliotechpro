@@ -48,9 +48,6 @@ services:
       ORACLE_PASSWORD: ${ORACLE_PASSWORD}
       APP_USER: ${DB_USER}
       APP_USER_PASSWORD: ${DB_PASSWORD}
-      # Límites de memoria para Oracle (importante para VPS)
-      ORACLE_SGA_TARGET: 512M
-      ORACLE_PGA_AGGREGATE_TARGET: 150M
     volumes:
       - oracle-data:/opt/oracle/oradata
       - ./db:/docker-entrypoint-initdb.d:ro
@@ -113,8 +110,9 @@ services:
       # Secrets
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
-      # N8N Integration
-      N8N_WEBHOOK_BASE_URL: http://bibliotech-n8n-vps:5678/webhook/
+      # Telegram Configuration
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID}
       # JVM Options - Optimizado para VPS con recursos limitados
       JAVA_OPTS: "-Xms128m -Xmx356m -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication"
       # CORS
@@ -153,6 +151,12 @@ services:
     networks:
       - bibliotech-net
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "pgrep", "-f", "python" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -177,31 +181,11 @@ services:
     restart: unless-stopped
     networks:
       - bibliotech-net
-    logging: *default-logging
-
-  # =========================================================
-  # N8N WORKFLOW AUTOMATION
-  # =========================================================
-  n8n:
-    image: n8nio/n8n:latest
-    container_name: bibliotech-n8n-vps
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:9144:5678"
-    environment:
-      - N8N_HOST=n8n
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - WEBHOOK_URL=http://n8n:5678/
-      - GENERIC_TIMEZONE=Europe/Madrid
-    volumes:
-      - n8n_data:/home/node/.n8n
-    networks:
-      - bibliotech-net
-    deploy:
-      resources:
-        limits:
-          memory: 768M
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:80" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging: *default-logging
 
 networks:
@@ -210,4 +194,3 @@ networks:
 
 volumes:
   oracle-data:
-  n8n_data:

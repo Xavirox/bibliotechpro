@@ -201,7 +201,6 @@ export async function loadEjemplares(idLibro) {
             if (ej.estado === BOOK_STATUS.DISPONIBLE && currentUser && currentUser.rol === 'SOCIO') {
                 const btn = document.createElement('button');
                 btn.className = 'btn-reserve-inline';
-                btn.style.cssText = "border:none; background:none; color:var(--primary); cursor:pointer; font-weight:700; font-size:0.85rem;";
                 btn.textContent = "Reservar";
                 btn.title = "Reservar por 24 horas";
                 btn.addEventListener('click', (e) => bloquearEjemplar(ej.idEjemplar, idLibro, e.currentTarget));

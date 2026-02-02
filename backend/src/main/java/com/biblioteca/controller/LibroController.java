@@ -48,6 +48,7 @@ public class LibroController {
 
     @GetMapping("/paginated")
     @Operation(summary = "Listar libros paginados", description = "Obtiene el catálogo de libros con paginación")
+    // @Cacheable removed for paginated results to ensure correct partial loading
     public PageResponse<com.biblioteca.dto.LibroDTO> listarLibrosPaginados(
             @Parameter(description = "Número de página (0-indexed)") @RequestParam(defaultValue = "0") int pagina,
             @Parameter(description = "Tamaño de página") @RequestParam(defaultValue = "10") int tamanio,
