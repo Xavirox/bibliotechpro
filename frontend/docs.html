@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentación Técnica | BiblioTech Pro</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366F1;
+            --bg: #F8FAFC;
+            --text: #0F172A;
+            --card: #FFFFFF;
+            --border: #E2E8F0;
+        }
+        body.dark-mode {
+            --bg: #0F172A;
+            --text: #F8FAFC;
+            --card: #1E293B;
+            --border: #334155;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+        .back-link {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .doc-content {
+            background: var(--card);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+        }
+        /* Markdown Styling */
+        .doc-content h1 { font-size: 2.25rem; margin-top: 0; color: var(--primary); }
+        .doc-content h2 { font-size: 1.5rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        .doc-content code { background: rgba(99, 102, 241, 0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .doc-content pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; overflow-x: auto; }
+        .doc-content blockquote { border-left: 4px solid var(--primary); margin: 0; padding-left: 20px; color: #64748b; font-style: italic; }
+        .doc-content table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .doc-content th, .doc-content td { border: 1px solid var(--border); padding: 12px; text-align: left; }
+        .doc-content th { background: rgba(99, 102, 241, 0.05); }
+        .doc-content img { max-width: 100%; border-radius: 8px; }
+        
+        .loading { text-align: center; padding: 40px; }
+        .error { color: #ef4444; background: #fee2e2; padding: 20px; border-radius: 8px; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="index.html" class="back-link">
+                <i class="fa-solid fa-arrow-left"></i> Volver a la Aplicación
+            </a>
+            <div id="theme-status">
+                <span id="doc-title-ext">Información del Proyecto</span>
+            </div>
+        </header>
+
+        <div id="error-box" class="error">
+            <i class="fa-solid fa-triangle-exclamation"></i> Error al cargar la documentación. Asegúrate de que el archivo existe en el servidor.
+        </div>
+
+        <div id="content" class="doc-content">
+            <div class="loading">
+                <i class="fa-solid fa-circle-notch fa-spin fa-2x"></i>
+                <p>Cargando documentación técnica...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Aplicar modo oscuro si está activo en la app principal
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        async function loadDoc() {
+            const contentDiv = document.getElementById('content');
+            const errorBox = document.getElementById('error-box');
+            
+            try {
+                // Intentamos cargar el archivo unificado que está en la raíz
+                // Nginx debe estar configurado para servir archivos .md o lo moveremos si es necesario
+                const response = await fetch('/PROYECTO_FINAL_UNIFICADO.md');
+                if (!response.ok) throw new Error('No se pudo cargar el archivo');
+                
+                const markdown = await response.text();
+                contentDiv.innerHTML = marked.parse(markdown);
+            } catch (err) {
+                console.error(err);
+                contentDiv.style.display = 'none';
+                errorBox.style.display = 'block';
+            }
+        }
+
+        loadDoc();
+    </script>
+</body>
+</html>

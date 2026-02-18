@@ -46,3 +46,11 @@ tmp/
 certs/
 db/data/
 n8n_data/
+
+# Infrastructure & Manual Deployment (Sensitive IPs/Paths)
+scripts/vps/
+*.ps1
+
+# Large Binaries
+*.jar
+*.zip
